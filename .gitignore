@@ -1,0 +1,6 @@
+keras_triplet_descriptor/*
+hpatches/*
+logs/*
+*.ipynb
+*.pyc
+.vscode
