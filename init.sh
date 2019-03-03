@@ -8,6 +8,3 @@ rm ./hpatches_data.zip
 
 # Insall necessary python modules
 pip install keras opencv-python
-
-# Download my repo
-git clone https://github.com/sdpenguin/deeplearning2019
