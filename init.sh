@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 # Download git repo
 git clone https://github.com/MatchLab-Imperial/keras_triplet_descriptor
 # Download hpatches data
