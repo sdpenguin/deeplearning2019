@@ -14,4 +14,4 @@ fi
 apt update && apt install -y libsm6 libxext6 libxrender-dev
 
 # Insall necessary python modules
-pip install keras opencv-python
+pip install keras opencv-python tqdm pandas
