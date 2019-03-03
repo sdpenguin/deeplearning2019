@@ -4,9 +4,11 @@ import argparse
 parser = argparse.ArgumentParser(description='The main file to run the models for the Deep Learning 2019 Coursework.')
 parser.add_argument('dir_hpatches', action='store')
 parser.add_argument('dir_dump', action='store')
+parser.add_argument('dir_ktd', action='store', help='The keras_triplet_descriptor respository directory.')
 args = parser.parse_args()
 dir_hpatches = args.dir_hpatches
 dir_dump = args.dir_dump
+dir_ktd = args.dir_ktd
 
 #%%
 # IMPORTS
@@ -22,7 +24,7 @@ import random
 import json
 
 # Specify a path to the Keras Triplet Descriptor Repository
-dir_ktdgit = os.path.abspath('E:\Documents\Google Drive\Colab Notebooks\DL Coursework\keras_triplet_descriptor')
+dir_ktdgit = os.path.abspath(dir_ktd)
 sys.path.insert(0, dir_ktdgit)
 from read_data import HPatches, DataGeneratorDesc, hpatches_sequence_folder, tps
 from utils import generate_desc_csv, plot_denoise, plot_triplet
