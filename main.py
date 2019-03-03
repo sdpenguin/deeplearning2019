@@ -39,7 +39,10 @@ from models.load import get_latest_epoch
 #%%
 # Directories for training and testing
 splits_file = os.path.join(dir_ktdgit, 'splits.json')
-splits_json = json.load(open(splits_file, 'rb')) # May need to change this to 'r'
+try:
+    splits_json = json.load(open(splits_file, 'rb')) # May need to change this to 'r'
+except TypeError:
+    splits_json = json.load(open(splits_file, 'r'))
 split = splits_json['a'] # One of several different splits we could have used
 
 # All directories in the hpatches folder

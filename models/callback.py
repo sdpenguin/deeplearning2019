@@ -18,7 +18,11 @@ class SaveProgress(Callback):
         train_loss = logs['loss']
         losses = [train_loss, val_loss]
         # Save current losses
-        with open(os.path.join(self.dump, str(self.curr_epoch) + '.npy'), 'w+b') as losses_file:
-            np.save(losses_file, np.array(losses))
+        try:
+            with open(os.path.join(self.dump, str(self.curr_epoch) + '.npy'), 'w+b') as losses_file:
+                np.save(losses_file, np.array(losses))
+        except TypeError:
+            with open(os.path.join(self.dump, str(self.curr_epoch) + '.npy'), 'w+') as losses_file:
+                np.save(losses_file, np.array(losses))
         # Save the current weights
         self.model.save_weights(os.path.join(self.dump, str(self.curr_epoch) + '.h5'))
