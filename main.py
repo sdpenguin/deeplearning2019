@@ -1,3 +1,12 @@
+#%%
+# Global parameters
+import argparse
+parser = argparse.ArgumentParser(description='The main file to run the models for the Deep Learning 2019 Coursework.')
+parser.add_argument('dir_hpatches', action='store')
+parser.add_argument('dir_dump', action='store')
+args = parser.parse_args()
+dir_hpatches = args.dir_hpatches
+dir_dump = args.dir_dump
 
 #%%
 # IMPORTS
@@ -23,12 +32,6 @@ from tfwaleed.hpatches import DenoiseHPatchesImproved
 from models.baseline import BaselineDenoise, triplet_loss
 from models.callback import SaveProgress
 from models.load import get_latest_epoch
-
-
-#%%
-# Global parameters
-dir_hpatches = os.path.abspath('F:\hpatches\hpatches')
-dir_dump = os.path.abspath('D:\hpatchesdump')
 
 
 #%%
