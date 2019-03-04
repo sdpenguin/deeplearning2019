@@ -10,7 +10,7 @@ class DenoiseHPatchesImproved(DenoiseHPatches):
        Data can be presupplied for this class.
        """
     itr = tps
-    def __init__(self, seqs, batch_size = 32, dump=None, redump=False, suff=''):
+    def __init__(self, seqs, batch_size = 32, dump=None, nodisk=False, suff=''):
         ''' If you already have the NPatches data in a folder, then just
             supply it as a 3-tuple in presupplied_data. This speeds up
             initialization.
@@ -18,17 +18,17 @@ class DenoiseHPatchesImproved(DenoiseHPatches):
         self.batch_size = batch_size
         self.dim = (32, 32)
         self.n_channels = 1
-        (self.all_paths, self.sequences, self.sequences_n) = get_denoiser_data(seqs, self.dim, self.n_channels, dump=dump, redump=redump, suff=suff)
+        (self.all_paths, self.sequences, self.sequences_n) = get_denoiser_data(seqs, self.dim, self.n_channels, dump=dump, nodisk=nodisk, suff=suff)
         self.on_epoch_end()
 
 
-def get_denoiser_data(all_hpatches_dirs, dim=(32,32), num_channels=1, dump=None, redump=False, suff=''):
+def get_denoiser_data(all_hpatches_dirs, dim=(32,32), num_channels=1, dump=None, nodisk=False, suff=''):
     ''' This will generate and/or load the data needed for the Denoise Generator.
         Set dump to the place you want to store the files.
-        Set redump to true to rewrite the files.
+        Set nodisk to true to rewrite the files.
         suff could be 'train' OR 'test' to generate a different generator for each of
         train and test.'''
-    if dump and not redump and os.path.exists(os.path.join(dump, "./denoise_generator_{}paths.dat".format(suff))):
+    if dump and not nodisk and os.path.exists(os.path.join(dump, "./denoise_generator_{}paths.dat".format(suff))):
         print('Opening existing data')
         with open(os.path.join(dump, "./denoise_generator_{}paths.dat".format(suff)), 'rb') as denoise_file:
             all_paths = pickle.load(denoise_file)
@@ -37,9 +37,9 @@ def get_denoiser_data(all_hpatches_dirs, dim=(32,32), num_channels=1, dump=None,
         with open(os.path.join(dump, "./denoise_generator_{}seqn.dat".format(suff)), 'rb') as denoise_file:
             sequences_n = pickle.load(denoise_file)
     else:
+        if not nodisk and not dump:
+            raise ValueError('Please supply the dump path or set nodisk to True to avoid using the disk.')
         print('Generating new data')
-        if redump and not dump:
-            raise ValueError('Please supply the dump path if redump is True.')
         all_paths = []
         sequences = {}
         sequences_n = {}
@@ -59,7 +59,7 @@ def get_denoiser_data(all_hpatches_dirs, dim=(32,32), num_channels=1, dump=None,
                     all_paths.append(path)
                     sequences[path] = patches[i]
                     sequences_n[path] = noisy_patches[i]
-        if dump:
+        if dump and not nodisk:
             print('Dumping generated data')
             with open(os.path.join(dump, "./denoise_generator_{}paths.dat".format(suff)), 'w+b') as denoise_file:
                 pickle.dump(all_paths, denoise_file)
