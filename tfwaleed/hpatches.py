@@ -1,6 +1,7 @@
 import pickle
 from tqdm import tqdm
 import os
+import cv2
 
 from read_data import *
 
