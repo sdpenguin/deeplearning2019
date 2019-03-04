@@ -31,10 +31,9 @@ from utils import generate_desc_csv, plot_denoise, plot_triplet
 
 from tfwaleed.datastats import *
 from tfwaleed.hpatches import DenoiseHPatchesImproved
-from models.baseline import BaselineDenoise, triplet_loss
+from models.baseline import BaselineDenoise, BaselineDescriptor
 from models.callback import SaveProgress
 from models.load import get_latest_epoch
-
 
 #%%
 # Directories for training and testing
@@ -53,19 +52,17 @@ test_fnames = split['test']
 seqs_train = list(filter(lambda x: os.path.split(x)[-1] in train_fnames, all_hpatches_dirs)) 
 seqs_val = list(filter(lambda x: os.path.split(x)[-1] in split['test'], all_hpatches_dirs))
 
-
 #%%
 # Denoise generator
 denoise_val = DenoiseHPatchesImproved(seqs_val, dump=dir_dump, suff='val', redump=False)
 denoise_train = DenoiseHPatchesImproved(seqs_train, dump=dir_dump, suff='train', redump=False)
 
-
 #%%
+# Initialise Denoise Model
 shape = tuple(list(data_stats(denoise_val.get_images(0), request='data_shape')) + [1])
 denoise_model = BaselineDenoise(shape)
 optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
 denoise_model.compile(l='mean_absolute_error', o=optimizer, m=['mae'])
-
 
 #%%
 training_dir = os.path.join(dir_dump, 'baseline')
@@ -76,11 +73,15 @@ callback_log = keras.callbacks.TensorBoard(log_dir='./logs/baseline', histogram_
 callback_save = SaveProgress(training_dir, curr_epoch=max_epoch)
 callbacks = [callback_log, callback_save]
 
-
 #%%
 # Load existing weights
 if max_epoch is not 0:
     denoise_model.load_weights(os.path.join(training_dir, '{}.h5'.format(max_epoch)))
-    
 # Run model
 denoise_model.fit_generator(generator=denoise_train, epochs=10-max_epoch, verbose=1, validation_data=denoise_val, callbacks=callbacks)
+
+#%%
+# Initialise Descriptor Model
+desc_model = BaselineDescriptor(shape)
+optimizer = keras.optimizers.Adam(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+desc_model.compile(loss='mean_absolute_error', optimizer=optimizer)
