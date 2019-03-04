@@ -4,3 +4,4 @@ logs/*
 *.ipynb
 *.pyc
 .vscode
+dump
