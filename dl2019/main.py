@@ -20,6 +20,7 @@ except ImportError as e:
     raise ImportError('{}\nYou may need to add the keras_triplet_descriptor directory to the PATH \
 or run from the directory above it. You may also need to add an __init__.py file to the directory.'.format(e))
 
+from dl2019.utils.argparse import parse_args
 from dl2019.utils.datastats import data_stats
 from dl2019.utils.hpatches import DenoiseHPatchesImproved
 from dl2019.models.callback import SaveProgress
@@ -111,6 +112,7 @@ def main(dir_ktd, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_des
     train_descriptor(dir_hpatches, dir_dump, model_type, shape, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean)
 
 if __name__=='__main__':
+    parsed = parse_args()
     # Specify a path to the Keras Triplet Descriptor Repository
     main(parsed.dir_ktd, parsed.dir_hpatches, parsed.dir_dump,
          parsed.model_type, parsed.epochs_denoise, parsed.epochs_desc,
