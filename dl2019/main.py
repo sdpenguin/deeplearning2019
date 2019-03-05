@@ -12,12 +12,13 @@ import random
 import json
 import argparse
 
-# Add the keras triplet descriptor to PATH and import
-from dl2019.utils.argparse import parse_args
-parsed = parse_args()
-sys.path.insert(0, os.path.abspath(parsed.dir_ktd))
-from read_data import HPatches, DataGeneratorDesc, hpatches_sequence_folder, tps
-from utils import generate_desc_csv, plot_denoise, plot_triplet
+try:
+    from keras_triplet_descriptor.read_data import HPatches, DataGeneratorDesc, hpatches_sequence_folder, tps
+    # If an import fails here, you need to make utils import relatively
+    from keras_triplet_descriptor.utils import generate_desc_csv, plot_denoise, plot_triplet
+except ImportError as e:
+    raise ImportError('{}\nYou may need to add the keras_triplet_descriptor directory to the PATH \
+or run from the directory above it. You may also need to add an __init__.py file to the directory.'.format(e))
 
 from dl2019.utils.datastats import data_stats
 from dl2019.utils.hpatches import DenoiseHPatchesImproved
@@ -25,10 +26,10 @@ from dl2019.models.callback import SaveProgress
 from dl2019.models.load import get_latest_epoch, get_denoise_model, get_descriptor_model
 
 #%%
-def walk_hpatches(dir_ktdgit, dir_hpatches):
+def walk_hpatches(dir_ktd, dir_hpatches):
     ''' Obtains information about the directories in the hpatches folder. '''
     # Directories for training and testing
-    splits_file = os.path.join(dir_ktdgit, 'splits.json')
+    splits_file = os.path.join(dir_ktd, 'splits.json')
     try:
         splits_json = json.load(open(splits_file, 'rb')) # May need to change this to 'r'
     except TypeError:
@@ -104,8 +105,8 @@ def train_descriptor(dir_hpatches, dir_dump, model_type, shape, epochs_desc, den
     desc_model.fit_generator(generator=desc_train, epochs=epochs_desc-max_epoch, verbose=1, validation_data=desc_val, callbacks=callbacks)
 
 #%%
-def main(dir_ktdgit, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_desc, use_clean, nodisk):
-    (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktdgit, dir_hpatches)
+def main(dir_ktd, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_desc, use_clean, nodisk):
+    (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
     (shape, denoise_model) = train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk)
     train_descriptor(dir_hpatches, dir_dump, model_type, shape, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean)
 

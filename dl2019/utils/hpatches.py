@@ -3,7 +3,7 @@ from tqdm import tqdm
 import os
 import cv2
 
-from read_data import *
+from keras_triplet_descriptor.read_data import *
 
 class DenoiseHPatchesImproved(DenoiseHPatches):
     """Class for loading an HPatches sequence from a sequence folder.
