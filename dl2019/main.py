@@ -13,7 +13,7 @@ import json
 import argparse
 
 # Add the keras triplet descriptor to PATH and import
-from dl2019.tfwaleed.argparse import parse_args
+from dl2019.utils.argparse import parse_args
 parsed = parse_args()
 sys.path.insert(0, os.path.abspath(parsed.dir_ktd))
 from read_data import HPatches, DataGeneratorDesc, hpatches_sequence_folder, tps
