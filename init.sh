@@ -7,8 +7,8 @@ fi
 # and installs it
 echo > ./keras_triplet_descriptor/__init__.py
 # Replace the absolute package names with keras_triplet_descriptor.[Package] in utils
-sed -i -e 's/read_data/keras_triplet_descriptor.read_data/g' ./keras_triplet_descriptor/utils.py
-python ktd_setup.py install --force
+sed -i -e 's/ read_data/ keras_triplet_descriptor.read_data/g' ./keras_triplet_descriptor/utils.py
+python3 ktd_setup.py install --force
 
 # Download hpatches data
 if [ ! -d "hpatches" ]; then
@@ -24,4 +24,4 @@ apt update && apt install -y libsm6 libxext6 libxrender-dev
 pip install keras opencv-python tqdm pandas matplotlib
 
 # Install dl2019 Python package using the default python
-/usr/bin/env python setup.py install --force
+/usr/bin/env python3 setup.py install --force
