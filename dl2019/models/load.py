@@ -2,7 +2,7 @@ import os
 import numpy as np
 import glob
 
-from models.baseline import BaselineDenoise, BaselineDescriptor
+from dl2019.models.baseline import BaselineDenoise, BaselineDescriptor
 
 def get_latest_epoch(dir='.'):
     ''' Gets the number of the latest epoch in dir as determined by the files.'''

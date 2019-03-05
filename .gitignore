@@ -5,3 +5,7 @@ logs/*
 *.pyc
 .vscode
 dump
+
+build
+dist
+*.egg-info

@@ -1,7 +1,8 @@
 import argparse
 
+from dl2019.utils.possibles import possible_models
+
 def parse_args():
-    possible_models = ['baseline']
     parser = argparse.ArgumentParser(description='The main file to run the models for the Deep Learning 2019 Coursework.')
     parser.add_argument('dir_hpatches', action='store', help='Base hpatches directory containing all hpatches data in the default format.')
     parser.add_argument('dir_dump', action='store', help='Directory to place DenoiseHPatchesImproved formatted hpatches data, weights and losses.')

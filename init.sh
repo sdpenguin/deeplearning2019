@@ -15,3 +15,6 @@ apt update && apt install -y libsm6 libxext6 libxrender-dev
 
 # Insall necessary python modules
 pip install keras opencv-python tqdm pandas matplotlib
+
+# Install dl2019 Python package using the default python
+/usr/bin/env python setup.py install --force

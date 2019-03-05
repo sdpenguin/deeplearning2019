@@ -13,16 +13,16 @@ import json
 import argparse
 
 # Add the keras triplet descriptor to PATH and import
-from tfwaleed.argparse import parse_args
+from dl2019.tfwaleed.argparse import parse_args
 parsed = parse_args()
 sys.path.insert(0, os.path.abspath(parsed.dir_ktd))
 from read_data import HPatches, DataGeneratorDesc, hpatches_sequence_folder, tps
 from utils import generate_desc_csv, plot_denoise, plot_triplet
 
-from tfwaleed.datastats import data_stats
-from tfwaleed.hpatches import DenoiseHPatchesImproved
-from models.callback import SaveProgress
-from models.load import get_latest_epoch, get_denoise_model, get_descriptor_model
+from dl2019.utils.datastats import data_stats
+from dl2019.utils.hpatches import DenoiseHPatchesImproved
+from dl2019.models.callback import SaveProgress
+from dl2019.models.load import get_latest_epoch, get_denoise_model, get_descriptor_model
 
 #%%
 def walk_hpatches(dir_ktdgit, dir_hpatches):
