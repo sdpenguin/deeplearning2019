@@ -1,3 +1,5 @@
+import keras
+
 from keras import backend as K
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation, Flatten, Input, Lambda, Reshape
@@ -23,8 +25,9 @@ class BaselineDenoise(Model):
 
         super(BaselineDenoise, self).__init__(inputs = inputs, outputs = conv4)
 
-    def compile(self, l=None, o=None, m=['mae']):
-        super(BaselineDenoise, self).compile(loss=l, optimizer=o, metrics=m)
+    def compile(self, loss=None, metrics=['mae']):
+        optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        super(BaselineDenoise, self).compile(loss=l, optimizer=optimizer, metrics=m)
 
 
 class BaselineDescriptor(Model):
@@ -84,6 +87,10 @@ class BaselineDescriptor(Model):
         self.seq_model.add(Conv2D(128, 8, padding='valid', use_bias = True, kernel_initializer=init_weights))
         # Final descriptor reshape
         self.seq_model.add(Reshape((128,)))
+
+    def compile(self, loss=None, metrics=['mae']):
+        optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        super(BaselineDescriptor, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
 
 def triplet_loss(x):
