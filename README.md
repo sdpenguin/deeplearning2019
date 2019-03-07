@@ -7,7 +7,8 @@ This repository has three main components:
 
 1. The dl2019 Python package which is a set of Python modules used to help run the models for the HPatches data.
 2. Models impelemented within the package in ``dl2019/models/baseline.py``.
-3. An ``init.sh`` script that runs the 
+3. An ``init.sh`` script that runs the intial setup (downloading the required data and keras_triplet_descriptor as well as installing
+keras_triplet_decriptor and dl2019 as Python packages so that they are accessible).
 
 ## How to Run
 
@@ -38,10 +39,13 @@ To load and plot the data:
 
 ```
 from dl2019.evaluate.evaluate import load_train_test
-(train, test, epochs) = load_train_test(dir_dump, model_type, [denoise, desc]
 from matplotib import pyplot as plt
-plt.plot(epochs, train)
-plt.plot(epochs, test)
+
+(train, test, epochs) = load_train_test(dir_dump, model_type, [denoise, desc]
+
+plt.plot(epochs, train, label='train')
+plt.plot(epochs, test, label='test')
+plt.show()
 ```
 
 ## Creating New Models
