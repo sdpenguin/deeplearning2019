@@ -32,6 +32,18 @@ In "Creating New Models" below, you can see how to add your own custom models to
 
 You can find the model weights and train/validation losses in the directory ``dump/model_type_[desc, denoise]``. Functions for loading and manipulating this data are already provided in the ``dl2019/eval/eval.py`` Python module.
 
+### Plotting the Data
+
+To load and plot the data:
+
+```
+from dl2019.evaluate.evaluate import load_train_test
+(train, test, epochs) = load_train_test(dir_dump, model_type, [denoise, desc]
+from matplotib import pyplot as plt
+plt.plot(epochs, train)
+plt.plot(epochs, test)
+```
+
 ## Creating New Models
 
 To create a new model, you need to do the following three things:
