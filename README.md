@@ -35,18 +35,22 @@ You can find the model weights and train/validation losses in the directory ``du
 
 ### Plotting the Data
 
-To load and plot the data:
+To load and plot the data, use the following code. You must change the given parameters to set the dir_dump directory and model_type and suffix to those you want to plot:
 
 ```
 from dl2019.evaluate.evaluate import load_train_test
-from matplotib import pyplot as plt
+from matplotlib import pyplot as plt
 
-# dir_dump and model_type are the same format as the input arguments for the program
-# (e.g. dir_dump='./dump', model_type='baseline')
-(train, test, epochs) = load_train_test(dir_dump, model_type)
+dir_dump = 'dump'
+model_type = 'baseline'
+suffix = 'desc'
+(train, test, epochs) = load_train_test(dir_dump, model_type, suffix)
 
 plt.plot(epochs, train, label='train')
 plt.plot(epochs, test, label='test')
+plt.xlabel('Epoch')
+plt.ylabel('MAE')
+plt.legend()
 plt.show()
 ```
 
