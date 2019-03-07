@@ -48,18 +48,29 @@ def walk_hpatches(dir_ktd, dir_hpatches):
     return (seqs_val, seqs_train, train_fnames, test_fnames)
 
 #%%
+def get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk):
+    ''' Returns generators for train and test data for training the denoiser. '''
+    denoise_val = DenoiseHPatchesImproved(seqs_val, dump=dir_dump, suff='val', nodisk=nodisk)
+    denoise_train = DenoiseHPatchesImproved(seqs_train, dump=dir_dump, suff='train', nodisk=nodisk)
+    return (denoise_val, denoise_train)
+
+def get_denoise_mod(model_type, shape):
+    ''' Returns a denoise model compiled with an (ADAM) optimiser as default. '''
+    denoise_model = get_denoise_model(shape, model_type)
+    optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+    denoise_model.compile(l='mean_absolute_error', o=optimizer, m=['mae'])
+    return (shape, denoise_model)
+
 def train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk):
+    ''' Trains a denoise model. '''
     training_dir = os.path.join(dir_dump, model_type + '_denoise')
     if not os.path.exists(training_dir):
         os.makedirs(training_dir)
     # Denoise generator
-    denoise_val = DenoiseHPatchesImproved(seqs_val, dump=dir_dump, suff='val', nodisk=nodisk)
-    denoise_train = DenoiseHPatchesImproved(seqs_train, dump=dir_dump, suff='train', nodisk=nodisk)
+    (denoise_val, denoise_train) = get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk)
     # Initialise Denoise Model
     shape = tuple(list(data_stats(denoise_val.get_images(0), request='data_shape')) + [1])
-    denoise_model = get_denoise_model(shape, model_type)
-    optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
-    denoise_model.compile(l='mean_absolute_error', o=optimizer, m=['mae'])
+    denoise_model = get_denoise_model(model_type, shape)
     # Existing Epochs
     max_epoch = get_latest_epoch(training_dir)
     # Keras callbacks
@@ -80,19 +91,30 @@ this time. This may cause problems training on denoised data for the Descriptor.
     return (shape, denoise_model)
 
 #%%
+def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean):
+    ''' Gets the generator for train and test data for the descriptor model training. '''
+    hPatches = HPatches(train_fnames=train_fnames, test_fnames=test_fnames,
+                    denoise_model=denoise_model, use_clean=use_clean)
+    desc_train = DataGeneratorDesc(*hPatches.read_image_file(dir_hpatches, train=1), num_triplets=100000)
+    desc_val = DataGeneratorDesc(*hPatches.read_image_file(dir_hpatches, train=0), num_triplets=10000)
+    return (desc_train, desc_val)
+
+def get_desc_mod(shape, model_type):
+    ''' Returns a descriptor model with the default (ADAM) optimizer. '''
+    desc_model = get_descriptor_model(shape, model_type)
+    optimizer = keras.optimizers.Adam(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+    desc_model.compile(loss='mean_absolute_error', optimizer=optimizer)
+    return desc_model
+
 def train_descriptor(dir_hpatches, dir_dump, model_type, shape, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean):
+    ''' Trains the descriptor. '''
     training_dir = os.path.join(dir_dump, model_type + '_desc')
     if not os.path.exists(training_dir):
         os.makedirs(training_dir)
     # Descriptor Generator (TODO: Optimisation)
-    hPatches = HPatches(train_fnames=train_fnames, test_fnames=test_fnames,
-                        denoise_model=denoise_model, use_clean=use_clean)
-    desc_train = DataGeneratorDesc(*hPatches.read_image_file(dir_hpatches, train=1), num_triplets=100000)
-    desc_val = DataGeneratorDesc(*hPatches.read_image_file(dir_hpatches, train=0), num_triplets=10000)
+    (desc_train, desc_val) = get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean)
     # Initialise the Descriptor Model
-    desc_model = get_descriptor_model(shape, model_type)
-    optimizer = keras.optimizers.Adam(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
-    desc_model.compile(loss='mean_absolute_error', optimizer=optimizer)
+    desc_model = get_desc_mod(shape, model_type)
     # Existing Epochs
     max_epoch = get_latest_epoch(training_dir)
     # Keras callbacks
@@ -103,6 +125,7 @@ def train_descriptor(dir_hpatches, dir_dump, model_type, shape, epochs_desc, den
     if max_epoch is not 0:
         desc_model.load_weights(os.path.join(training_dir, '{}.h5'.format(max_epoch)))
     # Run model
+    print('Running descriptor model up to {} epochs.'.format(epochs_desc))
     desc_model.fit_generator(generator=desc_train, epochs=epochs_desc-max_epoch, verbose=1, validation_data=desc_val, callbacks=callbacks)
 
 #%%
