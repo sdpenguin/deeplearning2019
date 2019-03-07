@@ -102,7 +102,7 @@ def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, u
 def get_desc_mod(shape, model_type):
     ''' Returns a descriptor model with the default (ADAM) optimizer. '''
     desc_model = get_descriptor_model(shape, model_type)
-    optimizer = keras.optimizers.Adam(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+    optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
     desc_model.compile(loss='mean_absolute_error', optimizer=optimizer)
     return desc_model
 
