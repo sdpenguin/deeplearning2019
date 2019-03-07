@@ -70,7 +70,7 @@ def train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, no
     (denoise_val, denoise_train) = get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk)
     # Initialise Denoise Model
     shape = tuple(list(data_stats(denoise_val.get_images(0), request='data_shape')) + [1])
-    denoise_model = get_denoise_mod(model_type, shape)
+    (shape, denoise_model) = get_denoise_mod(model_type, shape)
     # Existing Epochs
     max_epoch = get_latest_epoch(training_dir)
     # Keras callbacks
