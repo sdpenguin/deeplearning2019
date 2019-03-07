@@ -27,7 +27,7 @@ class BaselineDenoise(Model):
 
     def compile(self, loss=None, metrics=['mae']):
         optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
-        super(BaselineDenoise, self).compile(loss=l, optimizer=optimizer, metrics=m)
+        super(BaselineDenoise, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
 
 class BaselineDescriptor(Model):
