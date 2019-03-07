@@ -41,7 +41,9 @@ To load and plot the data:
 from dl2019.evaluate.evaluate import load_train_test
 from matplotib import pyplot as plt
 
-(train, test, epochs) = load_train_test(dir_dump, model_type, [denoise, desc]
+# dir_dump and model_type are the same format as the input arguments for the program
+# (e.g. dir_dump='./dump', model_type='baseline')
+(train, test, epochs) = load_train_test(dir_dump, model_type)
 
 plt.plot(epochs, train, label='train')
 plt.plot(epochs, test, label='test')
