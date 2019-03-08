@@ -7,6 +7,20 @@ from keras.layers import Conv2D, MaxPooling2D, BatchNormalization
 from keras.layers import Input, UpSampling2D, concatenate
 from keras.initializers import he_normal
 
+
+def triplet_loss(x):
+  #output_dim = 128
+  a, p, n = x
+  _alpha = 1.0
+  positive_distance = K.mean(K.square(a - p), axis=-1)
+  negative_distance = K.mean(K.square(a - n), axis=-1)
+  # Alternative to be used without expand_dims below
+  #positive_distance = K.sqrt(K.sum(K.square(a - p), axis=-1, keepdims=True))
+  #negative_distance = K.sqrt(K.sum(K.square(a - n), axis=-1, keepdims=True))
+
+  return K.expand_dims(K.maximum(0.0, positive_distance - negative_distance + _alpha), axis = 1)
+
+
 class BaselineDenoise(Model):
     def __init__(self, shape):
         # Input
@@ -26,7 +40,7 @@ class BaselineDenoise(Model):
         super(BaselineDenoise, self).__init__(inputs = inputs, outputs = conv4)
 
     def compile(self, loss=None, metrics=['mae']):
-        optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        optimizer = keras.optimizers.sgd(lr=1e-5, momentum=0.9, nesterov=True)
         super(BaselineDenoise, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
 
@@ -89,15 +103,18 @@ class BaselineDescriptor(Model):
         self.seq_model.add(Reshape((128,)))
 
     def compile(self, loss=None, metrics=['mae']):
-        optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        optimizer = keras.optimizers.sgd(lr=0.1)
         super(BaselineDescriptor, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
 
-def triplet_loss(x):
-  #output_dim = 128
-  a, p, n = x
-  _alpha = 1.0
-  positive_distance = K.mean(K.square(a - p), axis=-1)
-  negative_distance = K.mean(K.square(a - n), axis=-1)
-  
-  return K.expand_dims(K.maximum(0.0, positive_distance - negative_distance + _alpha), axis = 1)
+class BaselineDenoiseOpt(BaselineDenoise):
+    ''' Optimally tuned baseline denoiser.'''
+    def compile(self, loss=None, metrics=['mae']):
+        optimizer = keras.optimizers.Nadam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        Model.compile(self, loss=loss, optimizer=optimizer, metrics=metrics)
+
+class BaselineDescriptorOpt(BaselineDescriptor):
+    ''' Optimally tuned baseline descriptor.'''
+    def compile(self, loss=None, metrics=['mae']):
+        optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        super(BaselineDescriptor, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
