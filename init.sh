@@ -1,4 +1,8 @@
 #!/bin/bash
+# Possibly install necessary programs for containers
+apt-get install wget
+apt-get install zip
+apt-get install git
 # Download keras_triplet_descriptor git repo
 if [ ! -d "keras_triplet_descriptor" ]; then
   git clone https://github.com/MatchLab-Imperial/keras_triplet_descriptor
