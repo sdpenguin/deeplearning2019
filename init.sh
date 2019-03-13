@@ -25,7 +25,8 @@ fi
 apt update && apt install -y libsm6 libxext6 libxrender-dev
 
 # Insall necessary python modules
-pip install opencv-python tqdm pandas matplotlib
+pip install keras opencv-python tqdm pandas matplotlib
+pip uninstall tensorflow tensorflow-gpu
 pip install tensorflow-gpu
 
 # Install dl2019 Python package using the default python
