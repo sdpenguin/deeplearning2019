@@ -14,7 +14,11 @@ def parse_args():
                         The HPatches data will be regenerated from scratch and not saved after it is generated. This may be useful for low-RAM systems.')
     parser.add_argument('--use-clean', dest='use_clean', default=False, type=bool, action='store', help='Train the descriptor model on clean data, instead of data denoised using the\
                         trained denoiser.')
+    parser.add_argument('--desc-only', dest='desc_only', default=False, type=bool, action='store', help='Skip generator creation and training for the denoiser and only train\
+                        the descriptor using clean data.')
     parsed = parser.parse_args()
     if parsed.model_type not in possible_models:
         raise ValueError('Your model must be one of {}.'.format(possible_models))
+    if parsed.desc_only and not parsed.use_clean:
+        print('WARNING: You have not specified use_clean as True, but desc_only is True. This may cause issues if you have not yet trained the denoiser.')
     return parsed
