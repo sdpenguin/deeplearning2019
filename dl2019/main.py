@@ -111,7 +111,7 @@ def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_mo
         os.makedirs(training_dir)
     # Descriptor Generator (TODO: Optimisation)
     (desc_train, desc_val) = get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean)
-    shape = tuple(list(next(iter(desc_val))[0]['a'][0]) + [1])
+    shape = next(iter(desc_val))[0]['a'][0].shape
     # Initialise the Descriptor Model
     desc_model = get_desc_mod(shape, model_type)
     # Existing Epochs
