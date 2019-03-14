@@ -148,8 +148,10 @@ def main(dir_ktd, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_des
 
 if __name__=='__main__':
     parsed = parse_args()
-    # Specify a path to the Keras Triplet Descriptor Repository
-    main(parsed.dir_ktd, parsed.dir_hpatches, parsed.dir_dump,
-         parsed.model_type, parsed.epochs_denoise, parsed.epochs_desc,
-         parsed.use_clean, parsed.nodisk, parsed.desc_only,
-         parsed.denoise_suffix, parsed.desc_suffix)
+    # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
+    import tensorflow as tf
+    with tf.Session() as sess:
+        main(parsed.dir_ktd, parsed.dir_hpatches, parsed.dir_dump,
+             parsed.model_type, parsed.epochs_denoise, parsed.epochs_desc,
+             parsed.use_clean, parsed.nodisk, parsed.desc_only,
+             parsed.denoise_suffix, parsed.desc_suffix)
