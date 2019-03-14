@@ -25,6 +25,7 @@ from dl2019.utils.datastats import data_stats
 from dl2019.utils.hpatches import DenoiseHPatchesImproved
 from dl2019.models.callback import SaveProgress
 from dl2019.models.load import get_latest_epoch, get_denoise_model, get_descriptor_model
+from dl2019.utils.general import set_random_seeds
 
 #%%
 def walk_hpatches(dir_ktd, dir_hpatches):
@@ -133,13 +134,16 @@ def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_mo
 
 #%%
 def main(dir_ktd, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_desc, use_clean, nodisk, desc_only, denoise_suffix=None, desc_suffix=None):
+    set_random_seeds()
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
+    set_random_seeds()
     if not desc_only:
         denoise_model = train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk, denoise_suffix)
     elif desc_only and not use_clean:
         denoise_model = get_denoise_mod(model_type, (32,32,1))
     else:
         denoise_model = None
+    set_random_seeds()
     train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix)
 
 if __name__=='__main__':
