@@ -4,7 +4,7 @@ import numpy as np
 from dl2019.models.load import get_latest_epoch
 from dl2019.utils.possibles import possible_models, possible_suffixes
 
-def load_train_test(dir_dump, model_type, suffix):
+def load_train_test(dir_dump, model_type, suffix, suffix2=None):
     """ Returns the train and test error as two arrays for a given model.
         Also returns the epochs as the third element."""
     if model_type not in possible_models:
@@ -12,6 +12,9 @@ def load_train_test(dir_dump, model_type, suffix):
     elif suffix not in possible_suffixes:
         raise ValueError("The suffix must be from: {}".format(possible_suffixes))
     output_dir = os.path.join(dir_dump, '{}_{}'.format(model_type, suffix))
+    if suffix2:
+        # This is an optional suffix supplied as the parameter denoise_suffix or desc_suffix
+        output_dir = output_dir + '_{}'.format(suffix2)
     (train_error, test_error, epochs) = ([], [], [])
     num_epochs = get_latest_epoch(output_dir)
     for i in range(1, num_epochs+1):

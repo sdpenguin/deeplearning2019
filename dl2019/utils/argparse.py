@@ -16,6 +16,8 @@ def parse_args():
                         trained denoiser.')
     parser.add_argument('--desc-only', dest='desc_only', default=False, type=bool, action='store', help='Skip generator creation and training for the denoiser and only train\
                         the descriptor using clean data.')
+    parser.add_argument('--denoise-suffix', dest='denoise_suffix', default=None, type=str, action='store', help='Optional suffix for the denoiser folder.')
+    parser.add_argument('--desc-suffix', dest='desc_suffix', default=None, type=str, action='store', help='Optional suffix for the descriptor folder.')
     parsed = parser.parse_args()
     if parsed.model_type not in possible_models:
         raise ValueError('Your model must be one of {}.'.format(possible_models))

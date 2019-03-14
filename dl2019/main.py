@@ -60,9 +60,11 @@ def get_denoise_mod(model_type, shape):
     denoise_model.compile(loss='mean_absolute_error', metrics=['mae'])
     return denoise_model
 
-def train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk):
+def train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk, denoise_suffix):
     ''' Trains a denoise model. '''
     training_dir = os.path.join(dir_dump, model_type + '_denoise')
+    if denoise_suffix:
+        training_dir = training_dir + '_{}'.format(denoise_suffix)
     if not os.path.exists(training_dir):
         os.makedirs(training_dir)
     # Denoise generator
@@ -104,9 +106,11 @@ def get_desc_mod(shape, model_type):
     desc_model.compile(loss='mean_absolute_error', metrics=['mae'])
     return desc_model
 
-def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean):
+def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix):
     ''' Trains the descriptor. '''
     training_dir = os.path.join(dir_dump, model_type + '_desc')
+    if desc_suffix:
+        training_dir = training_dir + '_{}'.format(desc_suffix)
     if not os.path.exists(training_dir):
         os.makedirs(training_dir)
     # Descriptor Generator (TODO: Optimisation)
@@ -128,19 +132,20 @@ def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_mo
     desc_model.fit_generator(generator=desc_train, epochs=epochs_desc-max_epoch, verbose=1, validation_data=desc_val, callbacks=callbacks)
 
 #%%
-def main(dir_ktd, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_desc, use_clean, nodisk, desc_only):
+def main(dir_ktd, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_desc, use_clean, nodisk, desc_only, denoise_suffix=None, desc_suffix=None):
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
     if not desc_only:
-        denoise_model = train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk)
+        denoise_model = train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk, denoise_suffix)
     elif desc_only and not use_clean:
         denoise_model = get_denoise_mod(model_type, (32,32,1))
     else:
         denoise_model = None
-    train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean)
+    train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix)
 
 if __name__=='__main__':
     parsed = parse_args()
     # Specify a path to the Keras Triplet Descriptor Repository
     main(parsed.dir_ktd, parsed.dir_hpatches, parsed.dir_dump,
          parsed.model_type, parsed.epochs_denoise, parsed.epochs_desc,
-         parsed.use_clean, parsed.nodisk, parsed.desc_only)
+         parsed.use_clean, parsed.nodisk, parsed.desc_only,
+         parsed.denoise_suffix, parsed.desc_suffix)
