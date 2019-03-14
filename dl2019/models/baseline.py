@@ -110,7 +110,7 @@ class BaselineDescriptor(Model):
 class BaselineDenoiseOpt(BaselineDenoise):
     ''' Optimally tuned baseline denoiser.'''
     def compile(self, loss=None, metrics=['mae']):
-        optimizer = keras.optimizers.Nadam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
         Model.compile(self, loss=loss, optimizer=optimizer, metrics=metrics)
 
 class BaselineDescriptorOpt(BaselineDescriptor):
