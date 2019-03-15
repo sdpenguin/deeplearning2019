@@ -144,6 +144,7 @@ def main(dir_ktd, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_des
     else:
         denoise_model = None
     set_random_seeds()
+    import tensorflow as tf # Fix 1.0 Val Loss
     train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix)
 
 if __name__=='__main__':
