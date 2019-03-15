@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+from matplotlib import pyplot as plt
+
 from dl2019.models.load import get_latest_epoch
 from dl2019.utils.possibles import possible_models, possible_suffixes
 
@@ -24,3 +26,13 @@ def load_train_test(dir_dump, model_type, suffix, suffix2=None):
             train_error.append(train_err_single)
             test_error.append(test_err_single)
     return (train_error, test_error, epochs)
+
+def make_plot(dir_dump, model_type, suffix, suffix2=None, max_epoch=100):
+    ''' Adds a plot of the train and test data for the specified model up to the specified epoch. '''
+    (train, test, epochs) = load_train_test(dir_dump, model_type, suffix, suffix2)
+    print(np.min(test))
+    label = '{}-{}'.format(model_type, suffix)
+    if suffix2:
+        label = label + '-{}'.format(suffix2)
+    plt.plot(epochs[0:max_epoch], test[0:max_epoch], label='test: {}'.format(label))
+    plt.plot(epochs[0:max_epoch], train[0:max_epoch], label='train: {}'.format(label))
