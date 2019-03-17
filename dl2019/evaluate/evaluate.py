@@ -4,13 +4,13 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from dl2019.models.load import get_latest_epoch
-from dl2019.utils.possibles import possible_models, possible_suffixes
+from dl2019.utils.possibles import possible_denoise_models, possible_desc_models, possible_suffixes
 
 def load_train_test(dir_dump, model_type, suffix, suffix2=None):
     """ Returns the train and test error as two arrays for a given model.
         Also returns the epochs as the third element."""
-    if model_type not in possible_models:
-        raise ValueError("The model_type must be from: {}".format(possible_models))
+    if model_type not in possible_denoise_models and model_type not in possible_desc_models:
+        raise ValueError("The model_type must be from: {}".format([possible_desc_models, possible_denoise_models]))
     elif suffix not in possible_suffixes:
         raise ValueError("The suffix must be from: {}".format(possible_suffixes))
     output_dir = os.path.join(dir_dump, '{}_{}'.format(model_type, suffix))

@@ -133,19 +133,19 @@ def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_mo
     desc_model.fit_generator(generator=desc_train, epochs=epochs_desc-max_epoch, verbose=1, validation_data=desc_val, callbacks=callbacks)
 
 #%%
-def main(dir_ktd, dir_hpatches, dir_dump, model_type, epochs_denoise, epochs_desc, use_clean, nodisk, desc_only, denoise_suffix=None, desc_suffix=None):
+def main(dir_ktd, dir_hpatches, dir_dump, model_type_denoise, model_type_desc, epochs_denoise, epochs_desc, use_clean, nodisk, desc_only, denoise_suffix=None, desc_suffix=None):
     set_random_seeds()
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
     set_random_seeds()
     if not desc_only:
-        denoise_model = train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk, denoise_suffix)
+        denoise_model = train_denoise(seqs_val, seqs_train, dir_dump, model_type_denoise, epochs_denoise, nodisk, denoise_suffix)
     elif desc_only and not use_clean:
-        denoise_model = get_denoise_mod(model_type, (32,32,1))
+        denoise_model = get_denoise_mod(model_type_denoise, (32,32,1))
     else:
         denoise_model = None
     set_random_seeds()
     import tensorflow as tf # Fix 1.0 Val Loss
-    train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix)
+    train_descriptor(dir_hpatches, dir_dump, model_type_desc, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix)
 
 if __name__=='__main__':
     parsed = parse_args()
@@ -153,6 +153,6 @@ if __name__=='__main__':
     import tensorflow as tf
     with tf.Session() as sess:
         main(parsed.dir_ktd, parsed.dir_hpatches, parsed.dir_dump,
-             parsed.model_type, parsed.epochs_denoise, parsed.epochs_desc,
+             parsed.model_type_denoise, parsed.model_type_desc, parsed.epochs_denoise, parsed.epochs_desc,
              parsed.use_clean, parsed.nodisk, parsed.desc_only,
              parsed.denoise_suffix, parsed.desc_suffix)
