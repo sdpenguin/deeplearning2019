@@ -20,19 +20,37 @@ def load_train_test(dir_dump, model_type, suffix, suffix2=None, override_checks=
     if suffix2:
         # This is an optional suffix supplied as the parameter denoise_suffix or desc_suffix
         output_dir = output_dir + '_{}'.format(suffix2)
-    (train_error, test_error, epochs) = ([], [], [])
+    (train_error, test_error, train_loss, test_loss, epochs) = ([], [], [], [], [])
     num_epochs = get_latest_epoch(output_dir)
     for i in range(1, num_epochs+1):
         if os.path.exists(os.path.join(output_dir, '{}.npy'.format(i))):
             epochs.append(i)
-            [train_err_single, test_err_single] = np.load(os.path.join(output_dir, '{}.npy'.format(i)))
+            curr_data = np.load(os.path.join(output_dir, '{}.npy'.format(i)))
+            for item in curr_data:
+                if item[0] == 'mean_absolute_error':
+                    train_err_single = item[1]
+                elif item[0] == 'val_mean_absolute_error':
+                    test_err_single = item[1]
+                elif item[0] == 'loss':
+                    train_loss_single = item[1]
+                elif item[0] == 'val_loss':
+                    test_loss_single = item[1]
             train_error.append(train_err_single)
             test_error.append(test_err_single)
-    return (train_error, test_error, epochs)
+            train_loss.append(train_loss_single)
+            test_loss.append(test_loss_single)
+    return (train_error, test_error, train_loss, test_loss, epochs)
 
-def make_plot(dir_dump, model_type, suffix, suffix2=None, max_epoch=100, override_checks=False):
-    ''' Adds a plot of the train and test data for the specified model up to the specified epoch. '''
-    (train, test, epochs) = load_train_test(dir_dump, model_type, suffix, suffix2, override_checks)
+def make_plot(dir_dump, model_type, suffix, suffix2=None, max_epoch=100, override_checks=False, mae=True):
+    ''' Adds a plot of the train and test data for the specified model up to the specified epoch.
+        If mae is False then the model-speicfic loss (which may be the mae) is plotted instead. This may not be comparable.'''
+    (train_err, test_err, trainloss, testloss, epochs) = load_train_test(dir_dump, model_type, suffix, suffix2, override_checks)
+    if mae:
+        train = train_err
+        test = test_err
+    else:
+        train = trainloss
+        test = testloss
     print(np.min(test))
     label = '{}-{}'.format(model_type, suffix)
     if suffix2:

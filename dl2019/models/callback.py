@@ -14,19 +14,18 @@ class SaveProgress(Callback):
     def on_epoch_end(self, epoch, logs=None):
         ''' Saves model losses and weights'''
         self.curr_epoch = self.curr_epoch + 1
-        val_loss = logs['val_loss']
-        train_loss = logs['loss']
+        #val_loss = logs['val_loss']
+        #train_loss = logs['loss']
         metrics = [] # This is needed if different models use different loss functions
         for k in self.params['metrics']:
             if k in logs:
                 metrics.append((k, logs[k]))
-        losses = [train_loss, val_loss, metrics ]
         # Save current losses
         try:
             with open(os.path.join(self.dump, str(self.curr_epoch) + '.npy'), 'w+b') as losses_file:
-                np.save(losses_file, np.array(losses))
+                np.save(losses_file, np.array(metrics))
         except TypeError:
             with open(os.path.join(self.dump, str(self.curr_epoch) + '.npy'), 'w+') as losses_file:
-                np.save(losses_file, np.array(losses))
+                np.save(losses_file, np.array(metrics))
         # Save the current weights
         self.model.save_weights(os.path.join(self.dump, str(self.curr_epoch) + '.h5'))
