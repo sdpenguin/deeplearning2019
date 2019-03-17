@@ -58,7 +58,7 @@ def get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk):
 def get_denoise_mod(model_type, shape):
     ''' Returns a denoise model compiled with an (ADAM) optimiser as default. '''
     denoise_model = get_denoise_model(shape, model_type)
-    denoise_model.compile(loss='mean_absolute_error', metrics=['mae'])
+    denoise_model.compile()
     return denoise_model
 
 def train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk, denoise_suffix):
@@ -104,7 +104,7 @@ def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, u
 def get_desc_mod(shape, model_type):
     ''' Returns a descriptor model with the default (ADAM) optimizer. '''
     desc_model = get_descriptor_model(shape, model_type)
-    desc_model.compile(loss='mean_absolute_error', metrics=['mae'])
+    desc_model.compile()
     return desc_model
 
 def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix):
