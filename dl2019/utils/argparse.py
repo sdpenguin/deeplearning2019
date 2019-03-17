@@ -2,6 +2,7 @@ import argparse
 
 from dl2019.utils.possibles import possible_denoise_models, possible_desc_models, arg_list
 from dl2019.utils.json_parse import JobSpecGenerator 
+from dl2019.models.load_opt import opt_key_decode
 
 def parse_args():
     parser = argparse.ArgumentParser(description='The main file to run the models for the Deep Learning 2019 Coursework.')
@@ -48,6 +49,7 @@ def parse_args():
 def arg_checks(parsed):
     ''' Does preliminary checks to assert that the arguments are ok. '''
     print('Denoise Model: {} (Epochs: {}), Desc Model: {} (Epochs: {})'.format(parsed['model_denoise'], parsed['epochs_denoise'], parsed['model_desc'], parsed['epochs_desc']))
+    opt_key_decode(parsed['optimizer']) # WIll raise an error if the opt key is invalid
     if parsed['model_denoise'] not in possible_denoise_models:
         raise ValueError('Your denoise model must be one of {}. Please amend possible_denoise_models if you have created a model.'.format(possible_denoise_models))
     if parsed['model_desc'] not in possible_desc_models:
