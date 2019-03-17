@@ -56,14 +56,10 @@ def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_d
     dir_denoise = os.path.join(dir_dump, model_type_denoise + '_denoise' + '_{}'.format(optimizer))
     if denoise_suffix:
         dir_denoise = dir_denoise + '_{}'.format(denoise_suffix)
-    if not os.path.exists(dir_denoise):
-        os.makedirs(dir_denoise)
     # Desc
     dir_desc = os.path.join(dir_dump, model_type_desc + '_desc' + '_{}'.format(optimizer))
     if desc_suffix:
         dir_desc = dir_desc + '_{}'.format(desc_suffix)
-    if not os.path.exists(dir_desc):
-        os.makedirs(dir_desc)
     return (dir_denoise, dir_desc)
 
 #%%
@@ -75,6 +71,8 @@ def get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk):
 
 def get_denoise_mod(model_type, shape, training_dir, optimizer):
     ''' Returns a denoise model compiled with an (ADAM) optimiser as default. '''
+    if not os.path.exists(training_dir):
+        os.makedirs(training_dir)
     # Initialise Denoise Model
     denoise_model = get_denoise_model(shape, model_type)
     denoise_model.compile(optimizer=opt_key_decode(optimizer, model_suffix='denoise'))
@@ -106,6 +104,8 @@ def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, u
 
 def get_desc_mod(model_type, shape, training_dir, optimizer):
     ''' Returns a descriptor model. '''
+    if not os.path.exists(training_dir):
+        os.makedirs(training_dir)
     desc_model = get_descriptor_model(shape, model_type)
     desc_model.compile(optimizer=opt_key_decode(optimizer, model_suffix='desc'))
     # Existing Epochs
@@ -159,7 +159,7 @@ def main(dir_ktd, dir_hpatches, dir_dump, optimizer, model_type_denoise, epochs_
     return (denoise_val, denoise_train, desc_val, desc_train)
 
 if __name__=='__main__':
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Reduce tesnsorflow warning output
     (paths, jobs) = parse_args()
     # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
     (denoise_val, denoise_train, desc_val, desc_train) = (None, None, None, None)
