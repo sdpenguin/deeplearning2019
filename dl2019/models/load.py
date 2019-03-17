@@ -25,20 +25,6 @@ def get_denoise_model(shape, model_type):
         return BaselineDenoiseOpt(shape)
     elif model_type == 'unet':
         return UNetDenoise(shape)
-    elif model_type == 'baseline_1e5_adam_mse':
-        return BaselineDenoiseOpt1e5adammse(shape)
-    elif model_type == 'unet_1e5sgd_0.99_mse':
-        return UNet1e5sgd099mse(shape)
-    elif model_type == 'unet_1e5sgd_0.99':
-        return UNet1e5sgd099(shape)
-    elif model_type == 'unet_1e3sgd_0.9':
-        return UNet1e3sgd09(shape)
-    elif model_type == 'unet_1e3sgd_0.99':
-        return UNet1e3sgd099(shape)
-    elif model_type == 'unet_1e3sgd_0.99_mse':
-        return UNet1e3sgd099mse(shape)
-    elif model_type == 'unet_1e3adam':
-        return UNet1e3adam(shape)
     else:
         raise NotImplementedError('The denoise model type "{}" does not exist.'.format(model_type))
 
@@ -48,11 +34,5 @@ def get_descriptor_model(shape, model_type):
         return BaselineDescriptor(shape)
     elif model_type == 'baseline_opt':
         return BaselineDescriptorOpt(shape)
-    elif model_type == 'baseline_opt_1e3sgd':
-        return BaselineDescriptorOpt1e3sgd(shape)
-    elif model_type == 'baseline_opt_1e2':
-        return BaselineDescriptorOpt1e2adam(shape)
-    elif model_type == 'baseline_opt_1e1':
-        return BaselineDescriptorOpt1e1adam(shape)
     else:
         raise NotImplementedError('The descriptor model type "{}" does not exist.'.format(model_type))
