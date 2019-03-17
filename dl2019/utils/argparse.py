@@ -13,6 +13,7 @@ def parse_args():
     parser.add_argument('--model-desc', dest='model_desc', default=arg_list['model_desc'], action='store', help='The model to run for the descriptor. Must be one of {}'.format(possible_desc_models))
     parser.add_argument('--epochs-denoise', dest='epochs_denoise', default=arg_list['epochs_denoise'], type=int, action='store', help='Number of epochs for the denoiser.')
     parser.add_argument('--epochs-desc', dest='epochs_desc', default=arg_list['epochs_desc'], type=int, action='store', help='Number of epochs for the descriptor.')
+    parser.add_argument('--optimizer', dest='optimizer', default=arg_list['optimizer'], type=str, action='store', help='Optimizer code to specify the optimizers you want to use. Default will be loaded if not specified for the models.')
     parser.add_argument('--nodisk', dest='nodisk', default=arg_list['nodisk'], type=bool, action='store', help='Set this flag to avoid saving or loading HPatches Denoiser Generators from disk.\
                         The HPatches data will be regenerated from scratch and not saved after it is generated. This may be useful for low-RAM systems.')
     parser.add_argument('--use-clean', dest='use_clean', default=arg_list['use_clean'], type=bool, action='store', help='Train the descriptor model on clean data, instead of data denoised using the\
@@ -39,6 +40,7 @@ def parse_args():
         job['use_clean'] = parsed.use_clean
         job['denoise_suffix'] = parsed.denoise_suffix
         job['desc_suffix'] = parsed.desc_suffix
+        job['optimizer'] = parsed.optimizer
         arg_checks(job)
         return (paths, [job])
 
