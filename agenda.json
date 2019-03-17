@@ -15,6 +15,6 @@
 		"epochs_desc":1,
 		"denoise_suffix":null,
 		"desc_suffix":null,
-		"optimizer":"opt"
+		"optimizer":"base_opt"
 	}
 ]

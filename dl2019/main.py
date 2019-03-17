@@ -154,7 +154,7 @@ def main(dir_ktd, dir_hpatches, dir_dump, optimizer, model_type_denoise, epochs_
             print('RUNNING: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer, epochs_desc))
             train_descriptor(desc_model, desc_callbacks, max_epoch_desc, epochs_desc, desc_val, desc_train)
         else:
-            print('SKIPPING COMPLETED: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, epochs_desc))
+            print('SKIPPING COMPLETED: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer, epochs_desc))
 
     return (denoise_val, denoise_train, desc_val, desc_train)
 
