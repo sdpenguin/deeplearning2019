@@ -20,6 +20,12 @@ def opt_key_decode(opt_key='default', model_suffix='denoise'):
             return optimizers.Adam(lr=1e-5)
         elif model_suffix == 'desc':
             return optimizers.Adam(lr=1e-3)
+    elif opt_key == 'base1e3':
+        return optimizers.sgd(lr=1e-3, momentum=0.9, nesterov=True)
+    elif opt_key == 'base1e30.99':
+        return optimizers.sgd(lr=1e-3, momentum=0.99, nesterov=True)
+    elif opt_key == 'base0.99':
+        return optimizers.sgd(lr=1e-5, momentum=0.99, nesterov=True)
     else:
         raise ValueError('The optimizer key {} does not exist.'.format(opt_key))
 
