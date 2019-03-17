@@ -56,6 +56,7 @@ class UNetDenoise(Model):
 
         super(UNetDenoise, self).__init__(inputs = inputs, outputs = output)
 
-    def compile(self, loss='mean_absolute_error', metrics=['mae']):
-        optimizer = keras.optimizers.sgd(lr=1e-5, momentum=0.9, nesterov=True)
+    def compile(self, loss='mean_absolute_error', optimizer=None, metrics=['mae']):
+        if not optimizer:
+            optimizer = keras.optimizers.sgd(lr=1e-5, momentum=0.9, nesterov=True)
         super(UNetDenoise, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)

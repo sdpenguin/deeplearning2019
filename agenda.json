@@ -1,0 +1,18 @@
+[
+	{
+		"model_denoise":"baseline",
+		"model_desc":"baseline",
+		"epochs_denoise":1,
+		"epochs_desc":1,
+		"denoise_suffix":"test1",
+		"desc_suffix":"test1"
+	},
+	{
+		"model_denoise":"baseline",
+		"model_desc":"baseline",
+		"epochs_denoise":1,
+		"epochs_desc":1,
+		"denoise_suffix":"test2",
+		"desc_suffix":"test2"
+	}
+]

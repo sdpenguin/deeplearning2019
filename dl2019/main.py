@@ -49,30 +49,34 @@ def walk_hpatches(dir_ktd, dir_hpatches):
     return (seqs_val, seqs_train, train_fnames, test_fnames)
 
 #%%
+def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix):
+    ''' Returns the training directories for the denoiser and descriptor. '''
+    # Denoise
+    dir_denoise = os.path.join(dir_dump, model_type_denoise + '_denoise')
+    if denoise_suffix:
+        dir_denoise = dir_denoise + '_{}'.format(denoise_suffix)
+    if not os.path.exists(dir_denoise):
+        os.makedirs(dir_denoise)
+    # Desc
+    dir_desc = os.path.join(dir_dump, model_type_desc + '_desc')
+    if desc_suffix:
+        dir_desc = dir_desc + '_{}'.format(desc_suffix)
+    if not os.path.exists(dir_desc):
+        os.makedirs(dir_desc)
+    return (dir_denoise, dir_desc)
+
+#%%
 def get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk):
     ''' Returns generators for train and test data for training the denoiser. '''
     denoise_val = DenoiseHPatchesImproved(seqs_val, dump=dir_dump, suff='val', nodisk=nodisk)
     denoise_train = DenoiseHPatchesImproved(seqs_train, dump=dir_dump, suff='train', nodisk=nodisk)
     return (denoise_val, denoise_train)
 
-def get_denoise_mod(model_type, shape):
+def get_denoise_mod(model_type, shape, training_dir):
     ''' Returns a denoise model compiled with an (ADAM) optimiser as default. '''
+    # Initialise Denoise Model
     denoise_model = get_denoise_model(shape, model_type)
     denoise_model.compile()
-    return denoise_model
-
-def train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, nodisk, denoise_suffix):
-    ''' Trains a denoise model. '''
-    training_dir = os.path.join(dir_dump, model_type + '_denoise')
-    if denoise_suffix:
-        training_dir = training_dir + '_{}'.format(denoise_suffix)
-    if not os.path.exists(training_dir):
-        os.makedirs(training_dir)
-    # Denoise generator
-    (denoise_val, denoise_train) = get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk)
-    # Initialise Denoise Model
-    shape = tuple(list(data_stats(denoise_val.get_images(0), request='data_shape')) + [1])
-    denoise_model = get_denoise_mod(model_type, shape)
     # Existing Epochs
     max_epoch = get_latest_epoch(training_dir)
     # Keras callbacks
@@ -83,14 +87,12 @@ def train_denoise(seqs_val, seqs_train, dir_dump, model_type, epochs_denoise, no
     if max_epoch is not 0:
         print('INFO: Loading existing Denoise model at epoch {}.'.format(max_epoch))
         denoise_model.load_weights(os.path.join(training_dir, '{}.h5'.format(max_epoch)))
-    elif epochs_denoise == 0:
-        print('WARNING: The denoiser has not been previously trained and will not be trained\n\
-this time. This may cause problems training on denoised data for the Descriptor.')
-        time.sleep(3)
+    return (denoise_model, callbacks, max_epoch)
+
+def train_denoise(denoise_model, callbacks, max_epoch, epochs_denoise, denoise_val, denoise_train):
+    ''' Trains a denoise model. '''
     # Run model
     denoise_model.fit_generator(generator=denoise_train, epochs=epochs_denoise-max_epoch, verbose=1, validation_data=denoise_val, callbacks=callbacks)
-
-    return denoise_model
 
 #%%
 def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean):
@@ -99,26 +101,12 @@ def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, u
                     denoise_model=denoise_model, use_clean=use_clean)
     desc_train = DataGeneratorDesc(*hPatches.read_image_file(dir_hpatches, train=1), num_triplets=100000)
     desc_val = DataGeneratorDesc(*hPatches.read_image_file(dir_hpatches, train=0), num_triplets=10000)
-    return (desc_train, desc_val)
+    return (desc_val, desc_train)
 
-def get_desc_mod(shape, model_type):
-    ''' Returns a descriptor model with the default (ADAM) optimizer. '''
+def get_desc_mod(model_type, shape, training_dir):
+    ''' Returns a descriptor model. '''
     desc_model = get_descriptor_model(shape, model_type)
     desc_model.compile()
-    return desc_model
-
-def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix):
-    ''' Trains the descriptor. '''
-    training_dir = os.path.join(dir_dump, model_type + '_desc')
-    if desc_suffix:
-        training_dir = training_dir + '_{}'.format(desc_suffix)
-    if not os.path.exists(training_dir):
-        os.makedirs(training_dir)
-    # Descriptor Generator (TODO: Optimisation)
-    (desc_train, desc_val) = get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean)
-    shape = next(iter(desc_val))[0]['a'][0].shape
-    # Initialise the Descriptor Model
-    desc_model = get_desc_mod(shape, model_type)
     # Existing Epochs
     max_epoch = get_latest_epoch(training_dir)
     # Keras callbacks
@@ -127,32 +115,55 @@ def train_descriptor(dir_hpatches, dir_dump, model_type, epochs_desc, denoise_mo
     callbacks = [callback_log, callback_save]
     # Load existing weights
     if max_epoch is not 0:
+        print('INFO: Found existing desc model at epoch {}'.format(max_epoch))
         desc_model.load_weights(os.path.join(training_dir, '{}.h5'.format(max_epoch)))
+    return (desc_model, callbacks, max_epoch)
+
+def train_descriptor(desc_model, callbacks, max_epoch, epochs_desc, desc_val, desc_train):
+    ''' Trains the descriptor. '''
     # Run model
-    print('Running descriptor model up to {} epochs.'.format(epochs_desc))
     desc_model.fit_generator(generator=desc_train, epochs=epochs_desc-max_epoch, verbose=1, validation_data=desc_val, callbacks=callbacks)
 
 #%%
-def main(dir_ktd, dir_hpatches, dir_dump, model_type_denoise, model_type_desc, epochs_denoise, epochs_desc, use_clean, nodisk, desc_only, denoise_suffix=None, desc_suffix=None):
-    set_random_seeds()
+def main(dir_ktd, dir_hpatches, dir_dump, model_type_denoise, epochs_denoise, model_type_desc, epochs_desc, use_clean, nodisk, denoise_suffix=None, desc_suffix=None, denoise_val=None, denoise_train=None, desc_val=None, desc_train=None):
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
-    set_random_seeds()
-    if not desc_only:
-        denoise_model = train_denoise(seqs_val, seqs_train, dir_dump, model_type_denoise, epochs_denoise, nodisk, denoise_suffix)
+    (dir_denoise, dir_desc) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix)
+    if epochs_denoise > 0:
+        import tensorflow as tf
+        # Do not regenerate the generators every time
+        (denoise_model, denoise_callbacks, max_epoch_denoise) = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise)
+        if epochs_denoise - max_epoch_denoise > 0:
+            if not denoise_val or not denoise_train:
+                (denoise_val, denoise_train) = get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk)
+            print('RUNNING: denoise ({} Suffix:{}) up to {} epochs.'.format(model_type_denoise, denoise_suffix, epochs_denoise))
+            train_denoise(denoise_model, denoise_callbacks, max_epoch_denoise, epochs_denoise, denoise_val, denoise_train)
+        else:
+            print('SKIPPING COMPLETE: denoise ({} Suffix:{}) up to {} epochs.'.format(model_type_denoise, denoise_suffix, epochs_denoise))
     elif desc_only and not use_clean:
-        denoise_model = get_denoise_mod(model_type_denoise, (32,32,1))
+        denoise_model = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise)
     else:
         denoise_model = None
-    set_random_seeds()
-    import tensorflow as tf # Fix 1.0 Val Loss
-    train_descriptor(dir_hpatches, dir_dump, model_type_desc, epochs_desc, denoise_model, train_fnames, test_fnames, use_clean, desc_suffix)
+    if epochs_desc > 0:
+        import tensorflow as tf # Fix 1.0 Val Loss
+        # Do not regenerate the generators every time
+        (desc_model, desc_callbacks, max_epoch_desc) = get_desc_mod(model_type_desc, (32,32,1), dir_desc)
+        if epochs_desc - max_epoch_desc > 0:
+            if not desc_val or not desc_train:
+                (desc_val, desc_train) = get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean)
+            print('RUNNING: descriptor ({} Suffix:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, epochs_desc))
+            train_descriptor(desc_model, desc_callbacks, max_epoch_desc, epochs_desc, desc_val, desc_train)
+        else:
+            print('SKIPPING COMPLETED: descriptor ({} Suffix:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, epochs_desc))
+
+    return (denoise_val, denoise_train, desc_val, desc_train)
 
 if __name__=='__main__':
-    parsed = parse_args()
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    (paths, jobs) = parse_args()
     # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
-    import tensorflow as tf
-    with tf.Session() as sess:
-        main(parsed.dir_ktd, parsed.dir_hpatches, parsed.dir_dump,
-             parsed.model_type_denoise, parsed.model_type_desc, parsed.epochs_denoise, parsed.epochs_desc,
-             parsed.use_clean, parsed.nodisk, parsed.desc_only,
-             parsed.denoise_suffix, parsed.desc_suffix)
+    (denoise_val, denoise_train, desc_val, desc_train) = (None, None, None, None)
+    for job in jobs:
+        import tensorflow as tf
+        with tf.Session() as sess:
+            print('SETTING UP: Denoise: {} (Epochs: {}), Desc: {} (Epochs: {})'.format(job['model_denoise'], job['epochs_denoise'], job['model_desc'], job['epochs_desc']))
+            (denoise_val, denoise_train, desc_val, desc_train) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'], job['model_denoise'], job['epochs_denoise'], job['model_desc'], job['epochs_desc'], job['use_clean'], job['nodisk'], job['denoise_suffix'], job['desc_suffix'], denoise_val, denoise_train, desc_val, desc_train)

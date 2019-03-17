@@ -39,8 +39,9 @@ class BaselineDenoise(Model):
 
         super(BaselineDenoise, self).__init__(inputs = inputs, outputs = conv4)
 
-    def compile(self, loss='mean_absolute_error', metrics=['mae']):
-        optimizer = keras.optimizers.sgd(lr=1e-5, momentum=0.9, nesterov=True)
+    def compile(self, loss='mean_absolute_error', optimizer=None, metrics=['mae']):
+        if not optimizer:
+            optimizer = keras.optimizers.sgd(lr=1e-5, momentum=0.9, nesterov=True)
         super(BaselineDenoise, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
 
@@ -102,19 +103,22 @@ class BaselineDescriptor(Model):
         # Final descriptor reshape
         self.seq_model.add(Reshape((128,)))
 
-    def compile(self, loss='mean_absolute_error', metrics=['mae']):
-        optimizer = keras.optimizers.sgd(lr=0.1)
+    def compile(self, loss='mean_absolute_error', optimizer=None, metrics=['mae']):
+        if not optimizer:
+            optimizer = keras.optimizers.sgd(lr=0.1)
         super(BaselineDescriptor, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
 
 class BaselineDenoiseOpt(BaselineDenoise):
     ''' Optimally tuned baseline denoiser.'''
-    def compile(self, loss='mean_absolute_error', metrics=['mae']):
-        optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+    def compile(self, loss='mean_absolute_error', optimizer=None, metrics=['mae']):
+        if not optimizer:
+            optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
         super(BaselineDenoiseOpt, self).compile(self, loss=loss, optimizer=optimizer, metrics=metrics)
 
 class BaselineDescriptorOpt(BaselineDescriptor):
     ''' Optimally tuned baseline descriptor.'''
-    def compile(self, loss='mean_absolute_error', metrics=['mae']):
-        optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+    def compile(self, loss='mean_absolute_error', optimizer=None, metrics=['mae']):
+        if not optimizer:
+            optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
         super(BaselineDescriptorOpt, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)

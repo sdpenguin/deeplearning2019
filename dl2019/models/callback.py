@@ -16,7 +16,11 @@ class SaveProgress(Callback):
         self.curr_epoch = self.curr_epoch + 1
         val_loss = logs['val_loss']
         train_loss = logs['loss']
-        losses = [train_loss, val_loss]
+        metrics = [] # This is needed if different models use different loss functions
+        for k in self.params['metrics']:
+            if k in logs:
+                metrics.append((k, logs[k]))
+        losses = [train_loss, val_loss, metrics ]
         # Save current losses
         try:
             with open(os.path.join(self.dump, str(self.curr_epoch) + '.npy'), 'w+b') as losses_file:
