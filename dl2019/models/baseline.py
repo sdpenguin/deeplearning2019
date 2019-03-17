@@ -108,17 +108,3 @@ class BaselineDescriptor(Model):
             optimizer = keras.optimizers.sgd(lr=0.1)
         super(BaselineDescriptor, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
-
-class BaselineDenoiseOpt(BaselineDenoise):
-    ''' Optimally tuned baseline denoiser.'''
-    def compile(self, loss='mean_absolute_error', optimizer=None, metrics=['mae']):
-        if not optimizer:
-            optimizer = keras.optimizers.Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
-        super(BaselineDenoiseOpt, self).compile(self, loss=loss, optimizer=optimizer, metrics=metrics)
-
-class BaselineDescriptorOpt(BaselineDescriptor):
-    ''' Optimally tuned baseline descriptor.'''
-    def compile(self, loss='mean_absolute_error', optimizer=None, metrics=['mae']):
-        if not optimizer:
-            optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
-        super(BaselineDescriptorOpt, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)

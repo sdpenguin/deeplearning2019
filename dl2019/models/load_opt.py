@@ -17,15 +17,25 @@ def opt_key_decode(opt_key='default', model_suffix='denoise'):
             return optimizers.sgd(lr=0.1)
     elif opt_key == 'base_opt':
         if model_suffix == 'denoise':
-            return optimizers.Adam(lr=1e-5)
-        elif model_suffix == 'desc':
             return optimizers.Adam(lr=1e-3)
-    elif opt_key == 'base1e3':
-        return optimizers.sgd(lr=1e-3, momentum=0.9, nesterov=True)
-    elif opt_key == 'base1e30.99':
-        return optimizers.sgd(lr=1e-3, momentum=0.99, nesterov=True)
-    elif opt_key == 'base0.99':
-        return optimizers.sgd(lr=1e-5, momentum=0.99, nesterov=True)
+        elif model_suffix == 'desc':
+            return optimizers.sgd(lr=0.1)
+    elif opt_key.startswith('sgd'):
+        # SGD dynamic optimizer generator
+        suffix = opt_key.split('sgd')
+        params = suffix[1].split('m')
+        lr = float(params[0])
+        if len(params) == 2:
+            mom = float(params[1])
+            return optimizers.sgd(lr=lr, momentum=mom, nesterov=True)
+        else:
+            return optimizers.sgd(lr=lr)
+    elif opt_key.startswith('adam'):
+        # Adam dynamic optimizer generator
+        suffix = opt_key.split('adam')
+        params = suffix[1].split('m')
+        lr = float(params[0])
+        return optimizers.Adam(lr=lr)
     else:
         raise ValueError('The optimizer key {} does not exist.'.format(opt_key))
 

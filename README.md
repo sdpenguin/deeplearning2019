@@ -26,7 +26,6 @@ The current model types are listed below with their given architectures for both
 | model_type | Denoiser       | Descriptor         |
 | ---------- |:--------------:|:------------------:|
 | baseline   | Shallow U-Net (SGD LR:1e-5) | Modified HardNet (L2 Net)  (SGD LR:0.1) |
-| baseline_opt   | Shallow U-Net (Adam LR:1e-5 Momentum:0.9) | Modified HardNet (L2 Net)  (Adam LR:0.1) |
 | unet       | U-Net (ADAM LR:1e-5) | N/A |
 
 In "Creating New Models" below, you can see how to add your own custom models to the program.

@@ -2,10 +2,8 @@ import os
 import numpy as np
 import glob
 
-from dl2019.models.baseline import BaselineDenoise, BaselineDescriptor, BaselineDenoiseOpt, BaselineDescriptorOpt
+from dl2019.models.baseline import BaselineDenoise, BaselineDescriptor
 from dl2019.models.unet import UNetDenoise
-
-from dl2019.models.custommods import *
 
 def get_latest_epoch(dir='.'):
     ''' Gets the number of the latest epoch in dir as determined by the files.'''
@@ -21,8 +19,6 @@ def get_denoise_model(shape, model_type):
     ''' Get a denoise model based on the model type. '''
     if model_type == 'baseline':
         return BaselineDenoise(shape)
-    elif model_type == 'baseline_opt':
-        return BaselineDenoiseOpt(shape)
     elif model_type == 'unet':
         return UNetDenoise(shape)
     else:
@@ -32,7 +28,5 @@ def get_descriptor_model(shape, model_type):
     ''' Get a descriptor model based on the model type. '''
     if model_type == 'baseline':
         return BaselineDescriptor(shape)
-    elif model_type == 'baseline_opt':
-        return BaselineDescriptorOpt(shape)
     else:
         raise NotImplementedError('The descriptor model type "{}" does not exist.'.format(model_type))
