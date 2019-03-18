@@ -140,7 +140,7 @@ def main(dir_ktd, dir_hpatches, dir_dump, optimizer, model_type_denoise, epochs_
             train_denoise(denoise_model, denoise_callbacks, max_epoch_denoise, epochs_denoise, denoise_val, denoise_train)
         else:
             print('SKIPPING COMPLETE: denoise ({} Suffix:{}) up to {} epochs.'.format(model_type_denoise, denoise_suffix, epochs_denoise))
-    elif desc_only and not use_clean:
+    elif not use_clean:
         denoise_model = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise, optimizer)
     else:
         denoise_model = None
