@@ -1,14 +1,14 @@
 [
 	{
 		"model_denoise":"unet",
-		"epochs_denoise":1,
+		"epochs_denoise":7,
 		"epochs_desc":0,
 		"optimizer":"adam1e-3"
 	},
 	{
 		"model_denoise":"unet",
-		"epochs_denoise":5,
+		"epochs_denoise":7,
 		"epochs_desc":0,
 		"optimizer":"adam1e-4"
-	},
+	}
 ]
