@@ -5,5 +5,5 @@ setup(name='dl2019',
       description='Libraries for Deep Learning 2019',
       url='http://github.com/sdpenguin/deeplearning2019',
       author='Waleed El-Geresy',
-      packages=['dl2019', 'dl2019.models', 'dl2019.utils', 'dl2019.evaluate'],
+      packages=['dl2019', 'dl2019.models', 'dl2019.utils', 'dl2019.evaluate', 'dl2019.evaluate.hpatches_benchmark', 'dl2019.evaluate.hpatches_benchmark.utils'],
       zip_safe=False)

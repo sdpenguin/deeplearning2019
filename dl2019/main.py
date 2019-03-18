@@ -12,6 +12,8 @@ import random
 import json
 import argparse
 
+from keras.models import Model
+
 try:
     from keras_triplet_descriptor.read_data import HPatches, DataGeneratorDesc, hpatches_sequence_folder, tps
     # If an import fails here, you need to make utils import relatively
@@ -27,6 +29,7 @@ from dl2019.utils.general import set_random_seeds
 from dl2019.models.load_opt import opt_key_decode
 from dl2019.models.callback import SaveProgress
 from dl2019.models.load import get_latest_epoch, get_denoise_model, get_descriptor_model
+from dl2019.evaluate.benchmark import run_evaluations
 
 #%%
 def walk_hpatches(dir_ktd, dir_hpatches):
@@ -126,7 +129,9 @@ def train_descriptor(desc_model, callbacks, max_epoch, epochs_desc, desc_val, de
     desc_model.fit_generator(generator=desc_train, epochs=epochs_desc-max_epoch, verbose=1, validation_data=desc_val, callbacks=callbacks)
 
 #%%
-def main(dir_ktd, dir_hpatches, dir_dump, optimizer, model_type_denoise, epochs_denoise, model_type_desc, epochs_desc, use_clean, nodisk, denoise_suffix=None, desc_suffix=None, denoise_val=None, denoise_train=None, desc_val=None, desc_train=None):
+def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer, model_type_denoise, epochs_denoise, model_type_desc,
+         epochs_desc, use_clean, nodisk, denoise_suffix=None, desc_suffix=None, denoise_val=None, denoise_train=None,
+         desc_val=None, desc_train=None):
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
     (dir_denoise, dir_desc) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix, optimizer)
     if epochs_denoise > 0:
@@ -155,6 +160,10 @@ def main(dir_ktd, dir_hpatches, dir_dump, optimizer, model_type_denoise, epochs_
             train_descriptor(desc_model, desc_callbacks, max_epoch_desc, epochs_desc, desc_val, desc_train)
         else:
             print('SKIPPING COMPLETED: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer, epochs_desc))
+    if evaluate:
+        single_input_desc_model = Model(inputs=desc_model.get_layer('sequential_1').get_input_at(0), outputs=desc_model.get_layer('sequential_1').get_output_at(0)) # TYH
+        run_evaluations(single_input_desc_model, model_type_desc, optimizer, seqs_val, dir_dump, dir_ktd,
+                        suffix=desc_suffix, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean)
 
     return (denoise_val, denoise_train, desc_val, desc_train)
 
@@ -167,4 +176,8 @@ if __name__=='__main__':
         import tensorflow as tf
         with tf.Session() as sess:
             print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer'], job['desc_suffix'], job['epochs_desc']))
-            (denoise_val, denoise_train, desc_val, desc_train) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'], job['optimizer'], job['model_denoise'], job['epochs_denoise'], job['model_desc'], job['epochs_desc'], job['use_clean'], job['nodisk'], job['denoise_suffix'], job['desc_suffix'], denoise_val, denoise_train, desc_val, desc_train)
+            (denoise_val, denoise_train, desc_val, desc_train) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'],
+                                                                      job['evaluate'], job['pca'], job['optimizer'], job['model_denoise'],
+                                                                      job['epochs_denoise'], job['model_desc'], job['epochs_desc'],
+                                                                      job['use_clean'], job['nodisk'], job['denoise_suffix'],
+                                                                      job['desc_suffix'], denoise_val, denoise_train, desc_val, desc_train)

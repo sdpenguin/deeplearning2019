@@ -10,14 +10,16 @@ def parse_args():
     parser.add_argument('dir_dump', action='store', help='Directory to place DenoiseHPatchesImproved formatted hpatches data, weights and losses.')
     parser.add_argument('dir_ktd', action='store', help='The keras_triplet_descriptor respository directory.')
     parser.add_argument('-f', '--agenda-file', dest='agenda', default=None, action='store', help='Specify a file path containing a JSON specification for jobs to run. Please see README for spec details.')
+    parser.add_argument('-e', '--evaluate', dest='evaluate', default=False, action='store_true', help='Set this flag to run evaluation (verification/matching/retrieval) tests on the specified descriptor model (with or without denoiser depending on use-clean.')
+    parser.add_argument('--pca', dest='pca', default=False, action='store', help='Use the pca_power_law for evaluation. This may take longer, but generates more information.')
     parser.add_argument('--model-denoise', dest='model_denoise', default=arg_list['model_denoise'], action='store', help='The model to run for the denoiser. Must be one of {}'.format(possible_denoise_models))
     parser.add_argument('--model-desc', dest='model_desc', default=arg_list['model_desc'], action='store', help='The model to run for the descriptor. Must be one of {}'.format(possible_desc_models))
     parser.add_argument('--epochs-denoise', dest='epochs_denoise', default=arg_list['epochs_denoise'], type=int, action='store', help='Number of epochs for the denoiser.')
     parser.add_argument('--epochs-desc', dest='epochs_desc', default=arg_list['epochs_desc'], type=int, action='store', help='Number of epochs for the descriptor.')
     parser.add_argument('--optimizer', dest='optimizer', default=arg_list['optimizer'], type=str, action='store', help='Optimizer code to specify the optimizers you want to use. Default will be loaded if not specified for the models.')
-    parser.add_argument('--nodisk', dest='nodisk', default=arg_list['nodisk'], type=bool, action='store', help='Set this flag to avoid saving or loading HPatches Denoiser Generators from disk.\
+    parser.add_argument('--nodisk', dest='nodisk', default=arg_list['nodisk'], action='store_true', help='Set this flag to avoid saving or loading HPatches Denoiser Generators from disk.\
                         The HPatches data will be regenerated from scratch and not saved after it is generated. This may be useful for low-RAM systems.')
-    parser.add_argument('--use-clean', dest='use_clean', default=arg_list['use_clean'], type=bool, action='store', help='Train the descriptor model on clean data, instead of data denoised using the\
+    parser.add_argument('--use-clean', dest='use_clean', default=arg_list['use_clean'], action='store_true', help='Set this flag to train/evaluate the descriptor model on clean data, instead of data denoised using the\
                         trained denoiser.')
     parser.add_argument('--denoise-suffix', dest='denoise_suffix', default=arg_list['denoise_suffix'], type=str, action='store', help='Optional suffix for the denoiser folder.')
     parser.add_argument('--desc-suffix', dest='desc_suffix', default=arg_list['desc_suffix'], type=str, action='store', help='Optional suffix for the descriptor folder.')
@@ -33,6 +35,8 @@ def parse_args():
         return (paths, job_list)
     else:
         job = {}
+        job['evaluate'] = parsed.evaluate
+        job['pca'] = parsed.pca
         job['model_denoise'] = parsed.model_denoise
         job['model_desc'] = parsed.model_desc
         job['epochs_denoise'] = parsed.epochs_denoise
