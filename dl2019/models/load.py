@@ -2,7 +2,7 @@ import os
 import numpy as np
 import glob
 
-from dl2019.models.baseline import BaselineDenoise, BaselineDescriptor
+from dl2019.models.baseline import BaselineDenoise, BaselineDescriptor, BaselineDenoiseMSE
 from dl2019.models.unet import UNetDenoise
 
 def get_latest_epoch(dir='.'):
@@ -19,6 +19,8 @@ def get_denoise_model(shape, model_type):
     ''' Get a denoise model based on the model type. '''
     if model_type == 'baseline':
         return BaselineDenoise(shape)
+    elif model_type == 'baselinemse':
+        return BaselineDenoiseMSE(shape)
     elif model_type == 'unet':
         return UNetDenoise(shape)
     else:

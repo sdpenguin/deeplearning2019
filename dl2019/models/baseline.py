@@ -108,3 +108,9 @@ class BaselineDescriptor(Model):
             optimizer = keras.optimizers.sgd(lr=0.1)
         super(BaselineDescriptor, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
+
+class BaselineDenoiseMSE(BaselineDenoise):
+    def compile(self, loss='mean_squared_error', optimizer=None, metrics=['mae']):
+        if not optimizer:
+            optimizer = keras.optimizers.sgd(lr=1e-5, momentum=0.9, nesterov=True)
+        super(BaselineDenoiseMSE, self).compile(loss=loss, optimizer=optimizer, metrics=metrics)

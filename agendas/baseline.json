@@ -152,5 +152,5 @@
 		"epochs_desc":5,
 		"optimizer":"adam1e-1",
 		"use_clean":true
-	},
+	}
 ]
