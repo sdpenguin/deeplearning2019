@@ -23,24 +23,31 @@ def load_train_test(dir_dump, model_type, suffix, optimizer, suffix2=None, overr
         # This is an optional suffix supplied as the parameter denoise_suffix or desc_suffix
         output_dir = output_dir + '_{}'.format(suffix2)
     (train_error, test_error, train_loss, test_loss, epochs) = ([], [], [], [], [])
-    num_epochs = get_latest_epoch(output_dir)
+    num_epochs = get_latest_epoch(output_dir, usenpy=True)
     for i in range(1, num_epochs+1):
         if os.path.exists(os.path.join(output_dir, '{}.npy'.format(i))):
             epochs.append(i)
             curr_data = np.load(os.path.join(output_dir, '{}.npy'.format(i)))
-            for item in curr_data:
-                if item[0] == 'mean_absolute_error':
-                    train_err_single = item[1]
-                elif item[0] == 'val_mean_absolute_error':
-                    test_err_single = item[1]
-                elif item[0] == 'loss':
-                    train_loss_single = item[1]
-                elif item[0] == 'val_loss':
-                    test_loss_single = item[1]
-            train_error.append(train_err_single)
-            test_error.append(test_err_single)
-            train_loss.append(train_loss_single)
-            test_loss.append(test_loss_single)
+            try:
+                for item in curr_data:
+                    if item[0] == 'mean_absolute_error':
+                        train_err_single = float(item[1])
+                    elif item[0] == 'val_mean_absolute_error':
+                        test_err_single = float(item[1])
+                    elif item[0] == 'loss':
+                        train_loss_single = float(item[1])
+                    elif item[0] == 'val_loss':
+                        test_loss_single = float(item[1])
+                train_error.append(train_err_single)
+                test_error.append(test_err_single)
+                train_loss.append(train_loss_single)
+                test_loss.append(test_loss_single)
+            except IndexError:
+                # Legacy support for old-method style npy files
+                train_error.append(curr_data[0])
+                test_error.append(curr_data[1])
+                train_loss.append(curr_data[0])
+                test_loss.append(curr_data[1])
     return (train_error, test_error, train_loss, test_loss, epochs)
 
 def make_plot(dir_dump, model_type, suffix, optimizer, suffix2=None, max_epoch=100, override_checks=False, mae=True):
