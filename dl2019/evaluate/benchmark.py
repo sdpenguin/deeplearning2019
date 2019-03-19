@@ -5,6 +5,8 @@ import dill
 import os
 import time
 import json
+import shutil
+import numpy as np
 
 from keras_triplet_descriptor.read_data import hpatches_sequence_folder
 from dl2019.evaluate.hpatches_benchmark.utils.hpatch import *
@@ -28,8 +30,8 @@ def gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimi
             file_name = file_name + '_{}'.format(desc_suffix)
         file_name = file_name + '--' + model_denoise + '_denoise_' + optimizer_denoise
     else:
-        file_name = file_name + '_clean'
-    if denoise_suffix:
+        file_name = file_name + '--clean'
+    if denoise_suffix and not use_clean:
         file_name = file_name + '_{}'.format(denoise_suffix)
     for seq_path in tqdm(seqs_test):
         seq = hpatches_sequence_folder(seq_path, noise=noisy_patches)
@@ -119,21 +121,48 @@ def results(desc_name, dir_dump, dir_ktd, pca_power_law=False, more_info=False):
     with open(os.path.join(dir_ktd, "splits.json")) as f:
         splits = json.load(f)
     splt = splits['a'] # TODO: split 'a' is hardcoded in this function and the one above
+    results_array = []
     for t in ['verification', 'matching', 'retrieval']:
         print("%s task results:" % (green(t.capitalize())))
         for desc in descrs:
-            results_methods[t](results_dir, desc,splt,more_info)
+            curr_result = results_methods[t](results_dir, desc,splt,more_info)
+            results_array.append([t, curr_result])
             if pca_power_law:
                 results_methods[t](results_dir,desc+'_pcapl',splt,more_info)
             print
         print
+    if not os.path.exists(os.path.join(dir_dump, 'overall_results')):
+        os.makedirs(os.path.join(dir_dump, 'overall_results'))
+    try:
+        with open(os.path.join(dir_dump, os.path.join('overall_results', desc_name + '.npy')), 'w+') as results_file:
+            np.save(results_file, np.array(results_array))
+    except TypeError:
+        with open(os.path.join(dir_dump, os.path.join('overall_results', desc_name + '.npy')), 'w+b') as results_file:
+            np.save(results_file, np.array(results_array))
 
-def run_evaluations(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, seqs_test, dir_dump, dir_ktd, desc_suffix=None, denoise_suffix=None, pca_power_law=False, denoise_model=None, use_clean=False):
-    # Generate and save a descriptor array
-    # TODO: Print the name of the denoiser too
+def run_evaluations(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, seqs_test, dir_dump, dir_ktd, desc_suffix=None, denoise_suffix=None, pca_power_law=False, denoise_model=None, use_clean=False, keep_results=False):
     print('EVALUATING: Generating a descriptor array for desc Model: {} Opt: {} Suffix: {} Clean: {}.'.format(model_desc, optimizer_desc, desc_suffix, use_clean))
     if not use_clean:
         print('denoise Model: {} Opt: {} Suffix: {}'.format(model_denoise, optimizer_denoise, denoise_suffix))
     desc_name = gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, desc_suffix, denoise_suffix, seqs_test, dir_dump, denoise_model=denoise_model, use_clean=False)
     evaluate(dir_ktd, dir_dump, desc_name, pca_power_law)
     results(desc_name, dir_dump, dir_ktd, pca_power_law)
+    if not keep_results:
+        # These folders are often in excess of 1GB
+        shutil.rmtree(os.path.join(dir_dump, os.path.join('eval', desc_name)))
+        shutil.rmtree(os.path.join(dir_dump, os.path.join('results', desc_name)))
+
+def load_results(dir_dump, model_desc, model_denoise, optimizer_denoise, optimizer_desc, use_clean, desc_suffix=None, denoise_suffix=None):
+    ''' Loads npy file results that have been generated and saved in dir_dump/overall_results.
+        If use_clean is True, then simply set model_denoise etc. to None when you call this function.'''
+    file_name = model_desc + '_desc_' + optimizer_desc
+    if not use_clean:
+        if desc_suffix:
+            file_name = file_name + '_{}'.format(desc_suffix)
+        file_name = file_name + '--' + model_denoise + '_denoise_' + optimizer_denoise
+    else:
+        file_name = file_name + '--clean'
+    if denoise_suffix and not use_clean:
+        file_name = file_name + '_{}'.format(denoise_suffix)
+    results = np.load(os.path.join(dir_dump, 'overall_results', file_name + '.npy'))
+    return results

@@ -1,4 +1,4 @@
-from keras_triplet_descriptor.hpatches_benchmark.utils.misc import *
+from dl2019.evaluate.hpatches_benchmark.utils.misc import *
 import dill
 import pprint
 import os.path

@@ -1,6 +1,6 @@
 ''' A copy of results.py with custom results folder support. '''
 
-from keras_triplet_descriptor.hpatches_benchmark.utils.misc import *
+from dl2019.evaluate.hpatches_benchmark.utils.misc import *
 import dill
 import pprint
 import os.path
@@ -24,6 +24,7 @@ def results_verification(results_dir,desc,splt,more_info=False):
             print(tb(results,headers=heads))
     mAP = np.asarray(list(map(lambda x: x[1:], results))).mean()
     print('Mean Average Precision is {:f}'.format(mAP))
+    return mAP
 
 
 
@@ -47,6 +48,7 @@ def results_matching(results_dir,desc,splt,more_info=False):
         print(tb([results],headers=heads))
     print('Mean Average Precision is {:f}'.format(results[-1]))
     print("\n")
+    return results[-1]
 
 
 def results_retrieval(results_dir,desc,splt,more_info=False):
@@ -80,6 +82,7 @@ def results_retrieval(results_dir,desc,splt,more_info=False):
         print(tb(results,headers=heads))
     mAP = np.asarray(results[-1][1:]).mean()
     print('Mean Average Precision is {:f}'.format(mAP))
+    return mAP
 
 results_methods = {
     'verification': results_verification,

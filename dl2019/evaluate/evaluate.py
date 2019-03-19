@@ -52,7 +52,7 @@ def load_train_test(dir_dump, model_type, suffix, optimizer, suffix2=None, overr
 
 def make_plot(dir_dump, model_type, suffix, optimizer, suffix2=None, max_epoch=100, override_checks=False, mae=True):
     ''' Adds a plot of the train and test data for the specified model up to the specified epoch.
-        If mae is False then the model-speicfic loss (which may be the mae) is plotted instead. This may not be comparable.'''
+        If mae is False then the model-specific loss (which may be the mae) is plotted instead. This may not be comparable.'''
     (train_err, test_err, trainloss, testloss, epochs) = load_train_test(dir_dump, model_type, suffix, optimizer, suffix2, override_checks)
     if mae:
         train = train_err

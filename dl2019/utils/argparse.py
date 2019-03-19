@@ -24,6 +24,7 @@ def parse_args():
                         trained denoiser.')
     parser.add_argument('--denoise-suffix', dest='denoise_suffix', default=arg_list['denoise_suffix'], type=str, action='store', help='Optional suffix for the denoiser folder.')
     parser.add_argument('--desc-suffix', dest='desc_suffix', default=arg_list['desc_suffix'], type=str, action='store', help='Optional suffix for the descriptor folder.')
+    parser.add_argument('--keep-results', dest='keep_results', default=False, action='store_true', help='Set this flag to keep the results for the evaluation if you are running it. Warning: these folders can be in the GBs.')
     parsed = parser.parse_args()
     paths = {'dir_hpatches': parsed.dir_hpatches, 'dir_dump': parsed.dir_dump, 'dir_ktd': parsed.dir_ktd}
     print('MODELS: Printing agenda of models to run')
@@ -48,6 +49,7 @@ def parse_args():
         job['desc_suffix'] = parsed.desc_suffix
         job['optimizer_desc'] = parsed.optimizer_desc
         job['optimizer_denoise'] = parsed.optimizer_denoise
+        job['keep_results'] = parsed.keep_results
         arg_checks(job)
         return (paths, [job])
 
@@ -63,4 +65,3 @@ def arg_checks(parsed):
         raise ValueError('Your descriptor model must be one of {}. Please amend possible_desc_models if you have created a model.'.format(possible_desc_models))
     if parsed['epochs_denoise'] == 0 and not parsed['use_clean']:
         print('WARNING: You have not specified use_clean as True, but you are not running the denoiser. If you have not trained the denoiser your descriptor training and val data may be garbage.')
-

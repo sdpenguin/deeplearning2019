@@ -4,13 +4,13 @@ from glob import glob
 from joblib import Parallel, delayed
 import multiprocessing
 import pandas as pd
-import keras_triplet_descriptor.hpatches_benchmark.utils.metrics as metrics
+import dl2019.evaluate.hpatches_benchmark.utils.metrics as metrics
 from collections import defaultdict
 import time
 from tqdm import tqdm
 import os.path
-from keras_triplet_descriptor.hpatches_benchmark.utils.hpatch import *
-from keras_triplet_descriptor.hpatches_benchmark.utils.misc import *
+from dl2019.evaluate.hpatches_benchmark.utils.hpatch import *
+from dl2019.evaluate.hpatches_benchmark.utils.misc import *
 
 id2t = {0:{'e':'ref','h':'ref','t':'ref'}, \
         1:{'e':'e1','h':'h1','t':'t1'}, \
