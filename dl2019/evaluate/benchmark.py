@@ -129,6 +129,6 @@ def run_evaluations(desc_model, model_desc, optimizer, seqs_test, dir_dump, dir_
     desc_name = model_desc + '_desc_' + optimizer
     if suffix:
         desc_name = desc_name + '_{}'.format(suffix)
-    desc_name = gen_desc_array(desc_model, model_desc, optimizer, suffix, seqs_test, dir_dump, denoise_model=None, use_clean=False)
+    desc_name = gen_desc_array(desc_model, model_desc, optimizer, suffix, seqs_test, dir_dump, denoise_model=denoise_model, use_clean=False)
     evaluate(dir_ktd, dir_dump, desc_name, pca_power_law)
     results(desc_name, dir_dump, dir_ktd, pca_power_law)
