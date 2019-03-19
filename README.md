@@ -114,26 +114,26 @@ Results of the experiments that have been performed this far are given below. No
 
 ### Denoiser
 
-| model_type | Optimiser      | Epochs | Min Val Loss (MAE) | mAP Verification| mAP Matching | mAP Retrieval |  id  |
+| model_type | Optimiser      | Epochs | Min Val Loss (MAE) |  id  |
 | ---------- |:--------------:|:---------------------:|:------:|:---------------:|:------------:|:-------------:|:----:|
-| baseline   | SGD LR:1e-5 Momentum:0.9 (Nesterov) | 100 | 5.184 |  |  |  | 1 |
-| baseline   | Adam LR:1e-5   | 100 | 5.118 |  |  |  | 2 |
-| baseline   | Adam LR:1e-5 Momentum:0.8 | 15 | 5.535  |  |  |  | 7 |
-| baseline   | Adam LR:1e-3   | 15 | 5.016 |  |  |  | 6 |
-| baseline  | Adam LR:1e-4   | 15 | 5.051 |  |  |  | 5 |
-| unet   | SGD LR:1e-5 Momentum:0.9 | 2 | 5.3728 |  |  |  | 8 |
-| unet   | Adam LR:1e-5  |  |  |  |  |  | 9 |
-| unet   | Adam LR:1e-4  |  |  |  |  |  | 10 |
-| unet   | Adam LR:1e-3 |  |  |  |  |  | 11 |
+| baseline   | SGD LR:1e-5 Momentum:0.9 (Nesterov) | 100 | 5.184 | 1 |
+| baseline   | Adam LR:1e-5   | 100 | 5.118 | 2 |
+| baseline   | Adam LR:1e-5 Momentum:0.8 | 15 | 5.535  | 3 |
+| baseline   | Adam LR:1e-3   | 15 | 5.016 | 4 |
+| baseline  | Adam LR:1e-4   | 15 | 5.051 | 5 |
+| unet   | SGD LR:1e-5 Momentum:0.9 |  |  | 6 |
+| unet   | Adam LR:1e-5  |  |  | 7 |
+| unet   | Adam LR:1e-4  | 10 |  | 8 |
+| unet   | Adam LR:1e-3 | 10 |  | 9 |
 
 
 
 
 ### Descriptor
 
-| model_type | Optimiser      | Denoiser | Epochs | Min Val Loss (Triplet) | mAP Verification| mAP Matching | mAP Retrieval |
-| ---------- |:--------------:|:--------:|:------:|:-----------------------------:|:---------------:|:------------:|:-------------:|
-| baseline   | SGD LR:0.1 | 1 | 100 | 0.429 |  |  |  |
-| baseline   | Adam LR:1e-3 | 2 | 100 | 0.444 |  |  |  |
-| baseline   | SGD LR:0.1 | N/A | 100 | 0.047 |  |  |  |
-| baseline   | Adam LR:1e-3 | N/A | 100 | 0.061 |  |  |  |
+| model_type | Optimiser      | Denoiser Train (id) | Epochs | Min Val Loss (Triplet) | mAP Verification| mAP Matching | mAP Retrieval | Denoiser Eval (id) |
+| ---------- |:--------------:|:-------------------:|:------:|:----------------------:|:---------------:|:------------:|:-------------:|:------------------:|
+| baseline   | SGD LR:0.1 | 1 | 100 | 0.429 |  |  |  |  |
+| baseline   | Adam LR:1e-3 | 2 | 100 | 0.444 | 0.770 | 0.156 | 0.463 | 2 |
+| baseline   | SGD LR:0.1 | N/A | 100 | 0.047 |  |  |  |  |
+| baseline   | Adam LR:1e-3 | N/A | 100 | 0.061 |  |  |  |  |
