@@ -53,14 +53,14 @@ def walk_hpatches(dir_ktd, dir_hpatches):
     return (seqs_val, seqs_train, train_fnames, test_fnames)
 
 #%%
-def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix, optimizer):
+def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix, optimizer_desc, optimizer_denoise):
     ''' Returns the training directories for the denoiser and descriptor. '''
     # Denoise
-    dir_denoise = os.path.join(dir_dump, model_type_denoise + '_denoise' + '_{}'.format(optimizer))
+    dir_denoise = os.path.join(dir_dump, model_type_denoise + '_denoise' + '_{}'.format(optimizer_denoise))
     if denoise_suffix:
         dir_denoise = dir_denoise + '_{}'.format(denoise_suffix)
     # Desc
-    dir_desc = os.path.join(dir_dump, model_type_desc + '_desc' + '_{}'.format(optimizer))
+    dir_desc = os.path.join(dir_dump, model_type_desc + '_desc' + '_{}'.format(optimizer_desc))
     if desc_suffix:
         dir_desc = dir_desc + '_{}'.format(desc_suffix)
     return (dir_denoise, dir_desc)
@@ -129,41 +129,41 @@ def train_descriptor(desc_model, callbacks, max_epoch, epochs_desc, desc_val, de
     desc_model.fit_generator(generator=desc_train, epochs=epochs_desc-max_epoch, verbose=1, validation_data=desc_val, callbacks=callbacks)
 
 #%%
-def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer, model_type_denoise, epochs_denoise, model_type_desc,
+def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimizer_denoise, model_type_denoise, epochs_denoise, model_type_desc,
          epochs_desc, use_clean, nodisk, denoise_suffix=None, desc_suffix=None, denoise_val=None, denoise_train=None,
          desc_val=None, desc_train=None):
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
-    (dir_denoise, dir_desc) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix, optimizer)
+    (dir_denoise, dir_desc) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix, optimizer_desc, optimizer_denoise)
     if epochs_denoise > 0:
         import tensorflow as tf
         # Do not regenerate the generators every time
-        (denoise_model, denoise_callbacks, max_epoch_denoise) = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise, optimizer)
+        (denoise_model, denoise_callbacks, max_epoch_denoise) = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise, optimizer_denoise)
         if epochs_denoise - max_epoch_denoise > 0:
             if not denoise_val or not denoise_train:
                 (denoise_val, denoise_train) = get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk)
-            print('RUNNING: denoise ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_denoise, denoise_suffix, optimizer, epochs_denoise))
+            print('RUNNING: denoise ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_denoise, denoise_suffix, optimizer_denoise, epochs_denoise))
             train_denoise(denoise_model, denoise_callbacks, max_epoch_denoise, epochs_denoise, denoise_val, denoise_train)
         else:
             print('SKIPPING COMPLETE: denoise ({} Suffix:{}) up to {} epochs.'.format(model_type_denoise, denoise_suffix, epochs_denoise))
     elif not use_clean:
-        denoise_model = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise, optimizer)
+        denoise_model = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise, optimizer_denoise)
     else:
         denoise_model = None
     if epochs_desc > 0:
         import tensorflow as tf # Fix 1.0 Val Loss
         # Do not regenerate the generators every time
-        (desc_model, desc_callbacks, max_epoch_desc) = get_desc_mod(model_type_desc, (32,32,1), dir_desc, optimizer)
+        (desc_model, desc_callbacks, max_epoch_desc) = get_desc_mod(model_type_desc, (32,32,1), dir_desc, optimizer_desc)
         if epochs_desc - max_epoch_desc > 0:
             if not desc_val or not desc_train:
                 (desc_val, desc_train) = get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean)
-            print('RUNNING: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer, epochs_desc))
+            print('RUNNING: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer_desc, epochs_desc))
             train_descriptor(desc_model, desc_callbacks, max_epoch_desc, epochs_desc, desc_val, desc_train)
         else:
-            print('SKIPPING COMPLETED: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer, epochs_desc))
+            print('SKIPPING COMPLETE: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer_desc, epochs_desc))
     if evaluate:
         single_input_desc_model = Model(inputs=desc_model.get_layer('sequential_1').get_input_at(0), outputs=desc_model.get_layer('sequential_1').get_output_at(0)) # TYH
-        run_evaluations(single_input_desc_model, model_type_desc, optimizer, seqs_val, dir_dump, dir_ktd,
-                        suffix=desc_suffix, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean)
+        run_evaluations(single_input_desc_model, model_type_desc, model_type_denoise, optimizer_desc, optimizer_denoise, seqs_val, dir_dump, dir_ktd,
+                        desc_suffix=desc_suffix, denoise_suffix=denoise_suffix, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean)
 
     return (denoise_val, denoise_train, desc_val, desc_train)
 
@@ -175,9 +175,9 @@ if __name__=='__main__':
     for job in jobs:
         import tensorflow as tf
         with tf.Session() as sess:
-            print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer'], job['desc_suffix'], job['epochs_desc']))
+            print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer_denoise'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer_desc'], job['desc_suffix'], job['epochs_desc']))
             (denoise_val, denoise_train, desc_val, desc_train) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'],
-                                                                      job['evaluate'], job['pca'], job['optimizer'], job['model_denoise'],
+                                                                      job['evaluate'], job['pca'], job['optimizer_desc'], job['optimizer_denoise'], job['model_denoise'],
                                                                       job['epochs_denoise'], job['model_desc'], job['epochs_desc'],
                                                                       job['use_clean'], job['nodisk'], job['denoise_suffix'],
                                                                       job['desc_suffix'], denoise_val, denoise_train, desc_val, desc_train)

@@ -16,7 +16,8 @@ def parse_args():
     parser.add_argument('--model-desc', dest='model_desc', default=arg_list['model_desc'], action='store', help='The model to run for the descriptor. Must be one of {}'.format(possible_desc_models))
     parser.add_argument('--epochs-denoise', dest='epochs_denoise', default=arg_list['epochs_denoise'], type=int, action='store', help='Number of epochs for the denoiser.')
     parser.add_argument('--epochs-desc', dest='epochs_desc', default=arg_list['epochs_desc'], type=int, action='store', help='Number of epochs for the descriptor.')
-    parser.add_argument('--optimizer', dest='optimizer', default=arg_list['optimizer'], type=str, action='store', help='Optimizer code to specify the optimizers you want to use. Default will be loaded if not specified for the models.')
+    parser.add_argument('--optimizer-desc', dest='optimizer_desc', default=arg_list['optimizer_desc'], type=str, action='store', help='Descriptor ptimizer code to specify the optimizers you want to use. Default will be loaded if not specified for the model.')
+    parser.add_argument('--optimizer-denoise', dest='optimizer_denoise', default=arg_list['optimizer_denoise'], type=str, action='store', help='Denoiser ptimizer code to specify the optimizers you want to use. Default will be loaded if not specified for the model.')
     parser.add_argument('--nodisk', dest='nodisk', default=arg_list['nodisk'], action='store_true', help='Set this flag to avoid saving or loading HPatches Denoiser Generators from disk.\
                         The HPatches data will be regenerated from scratch and not saved after it is generated. This may be useful for low-RAM systems.')
     parser.add_argument('--use-clean', dest='use_clean', default=arg_list['use_clean'], action='store_true', help='Set this flag to train/evaluate the descriptor model on clean data, instead of data denoised using the\
@@ -45,15 +46,17 @@ def parse_args():
         job['use_clean'] = parsed.use_clean
         job['denoise_suffix'] = parsed.denoise_suffix
         job['desc_suffix'] = parsed.desc_suffix
-        job['optimizer'] = parsed.optimizer
+        job['optimizer_desc'] = parsed.optimizer_desc
+        job['optimizer_denoise'] = parsed.optimizer_denoise
         arg_checks(job)
         return (paths, [job])
 
 
 def arg_checks(parsed):
     ''' Does preliminary checks to assert that the arguments are ok. '''
-    print('Denoise Model: {} (Epochs: {}), Desc Model: {} (Epochs: {})'.format(parsed['model_denoise'], parsed['epochs_denoise'], parsed['model_desc'], parsed['epochs_desc']))
-    opt_key_decode(parsed['optimizer']) # WIll raise an error if the opt key is invalid
+    print('Denoise Model: {} (Opt:{}) (Suff:{}) (Epochs: {}), Desc Model: {} (Opt:{}) (Suff:{}) (Epochs: {})'.format(parsed['model_denoise'], parsed['optimizer_denoise'], parsed['denoise_suffix'], parsed['epochs_denoise'], parsed['model_desc'], parsed['optimizer_desc'], parsed['desc_suffix'], parsed['epochs_desc']))
+    opt_key_decode(parsed['optimizer_desc']) # Will raise an error if the opt key is invalid
+    opt_key_decode(parsed['optimizer_denoise'])
     if parsed['model_denoise'] not in possible_denoise_models:
         raise ValueError('Your denoise model must be one of {}. Please amend possible_denoise_models if you have created a model.'.format(possible_denoise_models))
     if parsed['model_desc'] not in possible_desc_models:
