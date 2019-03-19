@@ -1,7 +1,7 @@
 ''' This module provides a universal location for defining possible
     values of different parameters.'''
 
-possible_denoise_models = ['baseline', 'baselinemse', 'unet']
+possible_denoise_models = ['baseline', 'baselinemse', 'unet', 'dncnn']
 possible_desc_models = ['baseline']
 possible_suffixes = ['denoise', 'desc']
 # A list of the optional arguments and their defaults

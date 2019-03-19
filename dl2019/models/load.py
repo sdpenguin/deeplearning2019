@@ -4,6 +4,7 @@ import glob
 
 from dl2019.models.baseline import BaselineDenoise, BaselineDescriptor, BaselineDenoiseMSE
 from dl2019.models.unet import UNetDenoise
+from dl2019.models.DnCNN import DnCNN
 
 def get_latest_epoch(dir='.', usenpy=False):
     ''' Gets the number of the latest epoch in dir as determined by the files.'''
@@ -27,6 +28,8 @@ def get_denoise_model(shape, model_type):
         return BaselineDenoiseMSE(shape)
     elif model_type == 'unet':
         return UNetDenoise(shape)
+    elif model_type == 'dncnn':
+        return DnCNN(shape)
     else:
         raise NotImplementedError('The denoise model type "{}" does not exist.'.format(model_type))
 
