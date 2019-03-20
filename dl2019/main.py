@@ -178,13 +178,15 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
         else:
             print('SKIPPING COMPLETE: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer_desc, epochs_desc))
     if evaluate:
-        single_input_desc_model = Model(inputs=desc_model.get_layer('sequential_1').get_input_at(0), outputs=desc_model.get_layer('sequential_1').get_output_at(0)) # TYH
+        single_input_desc_model = Model(inputs=desc_model.get_layer(3).get_input_at(0), outputs=desc_model.get_layer(index=3).get_output_at(0))
         run_evaluations(single_input_desc_model, model_type_desc, model_type_denoise, optimizer_desc, optimizer_denoise, seqs_val, dir_dump, dir_ktd,
                         desc_suffix, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean, keep_results=keep_results)
 
     return (denoise_val, denoise_train, desc_val, desc_train)
 
 if __name__=='__main__':
+    if os.path.exists("./errors.log"): # Get rid of ye olde error file
+        os.rename("errors.log", "errors_old.log")
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Reduce tesnsorflow warning output
     (paths, jobs) = parse_args()
     # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
