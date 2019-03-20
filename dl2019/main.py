@@ -190,11 +190,16 @@ if __name__=='__main__':
     # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
     (denoise_val, denoise_train, desc_val, desc_train) = (None, None, None, None)
     for job in jobs:
-        import tensorflow as tf
-        with tf.Session() as sess:
-            print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer_denoise'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer_desc'], job['desc_suffix'], job['epochs_desc']))
-            (denoise_val, denoise_train, desc_val, desc_train) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'],
-                                                                      job['evaluate'], job['pca'], job['optimizer_desc'], job['optimizer_denoise'], job['model_denoise'],
-                                                                      job['epochs_denoise'], job['model_desc'], job['epochs_desc'],
-                                                                      job['use_clean'], job['nodisk'], job['denoise_suffix'],
-                                                                      job['desc_suffix'], denoise_val, denoise_train, desc_val, desc_train, job['keep_results'])
+        try:
+            import tensorflow as tf
+            with tf.Session() as sess:
+                print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer_denoise'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer_desc'], job['desc_suffix'], job['epochs_desc']))
+                (denoise_val, denoise_train, desc_val, desc_train) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'],
+                                                                          job['evaluate'], job['pca'], job['optimizer_desc'], job['optimizer_denoise'], job['model_denoise'],
+                                                                          job['epochs_denoise'], job['model_desc'], job['epochs_desc'],
+                                                                          job['use_clean'], job['nodisk'], job['denoise_suffix'],
+                                                                          job['desc_suffix'], denoise_val, denoise_train, desc_val, desc_train, job['keep_results'])
+        except BaseException as e:
+            print("EXCEPTION!!! Please see errors.log for details. Continuing run.")
+            with open("./errors.log", 'a+') as error_file:
+                error_file.write(str(e) + "\n" + str(job) + "\n")

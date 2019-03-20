@@ -142,7 +142,7 @@ def run_evaluations(desc_model, model_desc, model_denoise, optimizer_desc, optim
         shutil.rmtree(os.path.join(dir_dump, os.path.join('eval', desc_name)))
         shutil.rmtree(os.path.join(dir_dump, os.path.join('results', desc_name)))
 
-def load_results(dir_dump, model_desc, model_denoise, optimizer_denoise, optimizer_desc, use_clean, desc_suffix):
+def load_results(dir_dump, model_desc, optimizer_desc, use_clean, desc_suffix):
     ''' Loads npy file results that have been generated and saved in dir_dump/overall_results.
         If use_clean is True, then simply set model_denoise etc. to None when you call this function.'''
     file_name = model_desc + '_desc_' + optimizer_desc + '_' + desc_suffix
