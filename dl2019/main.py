@@ -32,6 +32,22 @@ from dl2019.models.load import get_latest_epoch, get_denoise_model, get_descript
 from dl2019.evaluate.benchmark import run_evaluations
 
 #%%
+def get_desc_suffix(desc_suffix, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean):
+    ''' Adds the denoiser model (or clean) to the start of the desc_suffix. '''
+    if not desc_suffix:
+        if not use_clean:
+            desc_suffix = '{}_{}'.format(model_type_denoise, optimizer_denoise)
+            if denoise_suffix:
+                desc_suffix = desc_suffix + '_{}'.format(denoise_suffix)
+    else:
+        if not use_clean:
+            desc_suffix_prepend = '{}_{}'.format(model_type_denoise, optimizer_denoise)
+            if denoise_suffix:
+                desc_suffix_prepend = desc_suffix_prepend + '_{}'.format(denoise_suffix)
+            desc_suffix = desc_suffix_prepend + '_' + desc_suffix
+    return desc_suffix
+
+#%%
 def walk_hpatches(dir_ktd, dir_hpatches):
     ''' Obtains information about the directories in the hpatches folder. '''
     # Directories for training and testing
@@ -132,6 +148,7 @@ def train_descriptor(desc_model, callbacks, max_epoch, epochs_desc, desc_val, de
 def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimizer_denoise, model_type_denoise, epochs_denoise, model_type_desc,
          epochs_desc, use_clean, nodisk, denoise_suffix=None, desc_suffix=None, denoise_val=None, denoise_train=None,
          desc_val=None, desc_train=None, keep_results=None):
+    desc_suffix = get_desc_suffix(desc_suffix, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean)
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
     (dir_denoise, dir_desc) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix, optimizer_desc, optimizer_denoise)
     if epochs_denoise > 0:
@@ -163,8 +180,7 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
     if evaluate:
         single_input_desc_model = Model(inputs=desc_model.get_layer('sequential_1').get_input_at(0), outputs=desc_model.get_layer('sequential_1').get_output_at(0)) # TYH
         run_evaluations(single_input_desc_model, model_type_desc, model_type_denoise, optimizer_desc, optimizer_denoise, seqs_val, dir_dump, dir_ktd,
-                        desc_suffix=desc_suffix, denoise_suffix=denoise_suffix, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean,
-                        keep_results=keep_results)
+                        desc_suffix, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean, keep_results=keep_results)
 
     return (denoise_val, denoise_train, desc_val, desc_train)
 

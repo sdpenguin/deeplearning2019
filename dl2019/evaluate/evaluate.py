@@ -61,7 +61,7 @@ def make_plot(dir_dump, model_type, suffix, optimizer, suffix2=None, max_epoch=1
         train = trainloss
         test = testloss
     print(np.min(test))
-    label = '{}-{}'.format(model_type, suffix)
+    label = '{}-{}-{}'.format(model_type, suffix, optimizer)
     if suffix2:
         label = label + '-{}'.format(suffix2)
     plt.plot(epochs[0:max_epoch], test[0:max_epoch], label='test: {}'.format(label))

@@ -15,7 +15,7 @@ from dl2019.evaluate.hpatches_benchmark.utils.misc import *
 #from keras_triplet_descriptor.hpatches_benchmark.utils.results import *
 from dl2019.evaluate.results_methods import *
 
-def gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, desc_suffix, denoise_suffix, seqs_test, dir_dump, denoise_model=None, use_clean=False):
+def gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, desc_suffix, seqs_test, dir_dump, denoise_model=None, use_clean=False):
     w = 32
     bs = 128
     output_dir = os.path.abspath(dir_dump)
@@ -24,15 +24,7 @@ def gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimi
         denoise_model = None
     else:
         noisy_patches = 1
-    file_name = model_desc + '_desc_' + optimizer_desc
-    if not use_clean:
-        if desc_suffix:
-            file_name = file_name + '_{}'.format(desc_suffix)
-        file_name = file_name + '--' + model_denoise + '_denoise_' + optimizer_denoise
-    else:
-        file_name = file_name + '--clean'
-    if denoise_suffix and not use_clean:
-        file_name = file_name + '_{}'.format(denoise_suffix)
+    file_name = model_desc + '_desc_' + optimizer_desc + '_' + desc_suffix
     for seq_path in tqdm(seqs_test):
         seq = hpatches_sequence_folder(seq_path, noise=noisy_patches)
 
@@ -140,11 +132,9 @@ def results(desc_name, dir_dump, dir_ktd, pca_power_law=False, more_info=False):
         with open(os.path.join(dir_dump, os.path.join('overall_results', desc_name + '.npy')), 'w+b') as results_file:
             np.save(results_file, np.array(results_array))
 
-def run_evaluations(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, seqs_test, dir_dump, dir_ktd, desc_suffix=None, denoise_suffix=None, pca_power_law=False, denoise_model=None, use_clean=False, keep_results=False):
+def run_evaluations(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, seqs_test, dir_dump, dir_ktd, desc_suffix, pca_power_law=False, denoise_model=None, use_clean=False, keep_results=False):
     print('EVALUATING: Generating a descriptor array for desc Model: {} Opt: {} Suffix: {} Clean: {}.'.format(model_desc, optimizer_desc, desc_suffix, use_clean))
-    if not use_clean:
-        print('denoise Model: {} Opt: {} Suffix: {}'.format(model_denoise, optimizer_denoise, denoise_suffix))
-    desc_name = gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, desc_suffix, denoise_suffix, seqs_test, dir_dump, denoise_model=denoise_model, use_clean=False)
+    desc_name = gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, desc_suffix, seqs_test, dir_dump, denoise_model=denoise_model, use_clean=False)
     evaluate(dir_ktd, dir_dump, desc_name, pca_power_law)
     results(desc_name, dir_dump, dir_ktd, pca_power_law)
     if not keep_results:
@@ -152,17 +142,9 @@ def run_evaluations(desc_model, model_desc, model_denoise, optimizer_desc, optim
         shutil.rmtree(os.path.join(dir_dump, os.path.join('eval', desc_name)))
         shutil.rmtree(os.path.join(dir_dump, os.path.join('results', desc_name)))
 
-def load_results(dir_dump, model_desc, model_denoise, optimizer_denoise, optimizer_desc, use_clean, desc_suffix=None, denoise_suffix=None):
+def load_results(dir_dump, model_desc, model_denoise, optimizer_denoise, optimizer_desc, use_clean, desc_suffix):
     ''' Loads npy file results that have been generated and saved in dir_dump/overall_results.
         If use_clean is True, then simply set model_denoise etc. to None when you call this function.'''
-    file_name = model_desc + '_desc_' + optimizer_desc
-    if not use_clean:
-        if desc_suffix:
-            file_name = file_name + '_{}'.format(desc_suffix)
-        file_name = file_name + '--' + model_denoise + '_denoise_' + optimizer_denoise
-    else:
-        file_name = file_name + '--clean'
-    if denoise_suffix and not use_clean:
-        file_name = file_name + '_{}'.format(denoise_suffix)
+    file_name = model_desc + '_desc_' + optimizer_desc + '_' + desc_suffix
     results = np.load(os.path.join(dir_dump, 'overall_results', file_name + '.npy'))
     return results
