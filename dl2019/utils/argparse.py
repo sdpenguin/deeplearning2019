@@ -65,5 +65,3 @@ def arg_checks(parsed):
         raise ValueError('Your denoise model must be one of {}. Please amend possible_denoise_models if you have created a model.'.format(possible_denoise_models))
     if parsed['model_desc'] not in possible_desc_models:
         raise ValueError('Your descriptor model must be one of {}. Please amend possible_desc_models if you have created a model.'.format(possible_desc_models))
-    if parsed['epochs_denoise'] == 0 and not parsed['use_clean']:
-        print('WARNING: You have not specified use_clean as True, but you are not running the denoiser. If you have not trained the denoiser your descriptor training and val data may be garbage.')
