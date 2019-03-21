@@ -33,20 +33,30 @@ from dl2019.models.load import get_latest_epoch, get_denoise_model, get_descript
 from dl2019.evaluate.benchmark import run_evaluations
 
 #%%
-def get_desc_suffix(desc_suffix, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean):
-    ''' Adds the denoiser model (or clean) to the start of the desc_suffix. '''
-    if not desc_suffix:
+def get_denoisertrain(denoisertrain, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean):
+    ''' Returns names of the training denoiser and the evaluation denoiser and a parameter called train_descriptor that specifies whether or not to train the descriptor.
+        denoisertrain is the denoiser that the descriptor uses to denoise the images before training.
+        denoisereval is the denoiser used for evaluating if evaluate is True. It is the denoiser to actually be loaded..
+        train_descriptor will be True if the two are equal, but false if not.'''
+    train_descriptor = True # Whether or not to train the descriptor later
+    denoisereval = '{}_{}'.format(model_type_denoise, optimizer_denoise)
+    if denoise_suffix:
+        denoisereval = denoisereval + '_{}'.format(denoise_suffix)
+
+    if not denoisertrain: # Auto generate the suffix from the denoiser model given if no denoiser training model specified
         if not use_clean:
-            desc_suffix = '{}_{}'.format(model_type_denoise, optimizer_denoise)
+            denoisertrain = '{}_{}'.format(model_type_denoise, optimizer_denoise)
             if denoise_suffix:
-                desc_suffix = desc_suffix + '_{}'.format(denoise_suffix)
+                denoisertrain = denoisertrain + '_{}'.format(denoise_suffix)
+        else:
+            denoisertrain = 'clean'
     else:
         if not use_clean:
-            desc_suffix_prepend = '{}_{}'.format(model_type_denoise, optimizer_denoise)
-            if denoise_suffix:
-                desc_suffix_prepend = desc_suffix_prepend + '_{}'.format(denoise_suffix)
-            desc_suffix = desc_suffix_prepend + '_' + desc_suffix
-    return desc_suffix
+            if denoisereval != denoisertrain: # You have specified a different denoiser that descriptor should be trained with
+                train_descriptor = False # Do not train the descriptor, (but maybe evaluate it with the given denoiser)
+    print('The denoisertrain value has been updated to {}.'.format(denoisertrain))
+
+    return (train_descriptor, denoisertrain, denoisereval)
 
 #%%
 def walk_hpatches(dir_ktd, dir_hpatches):
@@ -70,7 +80,7 @@ def walk_hpatches(dir_ktd, dir_hpatches):
     return (seqs_val, seqs_train, train_fnames, test_fnames)
 
 #%%
-def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix, optimizer_desc, optimizer_denoise):
+def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, denoisertrain, optimizer_desc, optimizer_denoise):
     ''' Returns the training directories for the denoiser and descriptor. '''
     # Denoise
     dir_denoise = os.path.join(dir_dump, model_type_denoise + '_denoise' + '_{}'.format(optimizer_denoise))
@@ -78,9 +88,14 @@ def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_d
         dir_denoise = dir_denoise + '_{}'.format(denoise_suffix)
     # Desc
     dir_desc = os.path.join(dir_dump, model_type_desc + '_desc' + '_{}'.format(optimizer_desc))
-    if desc_suffix:
-        dir_desc = dir_desc + '_{}'.format(desc_suffix)
-    return (dir_denoise, dir_desc)
+    if denoisertrain:
+        dir_desc = dir_desc + '_{}'.format(denoisertrain)
+
+    dir_eval = model_type_desc + '_desc' + '_{}'.format(optimizer_desc)
+    if denoisertrain:
+        dir_eval = dir_eval + '_{}'.format(denoisertrain)
+
+    return (dir_denoise, dir_desc, dir_eval)
 
 #%%
 def get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk):
@@ -147,11 +162,11 @@ def train_descriptor(desc_model, callbacks, max_epoch, epochs_desc, desc_val, de
 
 #%%
 def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimizer_denoise, model_type_denoise, epochs_denoise, model_type_desc,
-         epochs_desc, use_clean, nodisk, denoise_suffix=None, desc_suffix=None, denoise_val=None, denoise_train=None,
+         epochs_desc, use_clean, nodisk, denoise_suffix=None, denoisertrain=None, denoise_val=None, denoise_train=None,
          desc_val=None, desc_train=None, keep_results=None):
-    desc_suffix = get_desc_suffix(desc_suffix, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean)
+    (train_descriptor, denoisertrain, denoisereval) = get_denoisertrain(denoisertrain, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean)
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
-    (dir_denoise, dir_desc) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, desc_suffix, optimizer_desc, optimizer_denoise)
+    (dir_denoise, dir_desc, dir_eval) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, denoisertrain, optimizer_desc, optimizer_denoise)
     if epochs_denoise > 0:
         import tensorflow as tf
         # Do not regenerate the generators every time
@@ -163,25 +178,26 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
             train_denoise(denoise_model, denoise_callbacks, max_epoch_denoise, epochs_denoise, denoise_val, denoise_train)
         else:
             print('SKIPPING COMPLETE: denoise ({} Suffix:{}) up to {} epochs.'.format(model_type_denoise, denoise_suffix, epochs_denoise))
-    elif not use_clean:
-        denoise_model = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise, optimizer_denoise)
+    elif not use_clean and model_type_denoise != "none":
+        (denoise_model, _, _) = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise, optimizer_denoise)
     else:
         denoise_model = None
     if epochs_desc > 0:
         import tensorflow as tf # Fix 1.0 Val Loss
         # Do not regenerate the generators every time
         (desc_model, desc_callbacks, max_epoch_desc) = get_desc_mod(model_type_desc, (32,32,1), dir_desc, optimizer_desc)
-        if epochs_desc - max_epoch_desc > 0:
+        if not train_descriptor: # Descriptor is not trained if denoisertrain does not match denoisereval
+            print("SKIPPING TRAINING: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs. Desc_suffix =/= denoise model parameters.".format(model_type_desc, denoisertrain, optimizer_desc, epochs_desc))
+        elif epochs_desc - max_epoch_desc > 0:
             if not desc_val or not desc_train:
                 (desc_val, desc_train) = get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean)
-            print('RUNNING: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer_desc, epochs_desc))
+            print('RUNNING: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs with denoiser {}.'.format(model_type_desc, denoisertrain, optimizer_desc, epochs_desc, denoisertrain))
             train_descriptor(desc_model, desc_callbacks, max_epoch_desc, epochs_desc, desc_val, desc_train)
         else:
-            print('SKIPPING COMPLETE: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer_desc, epochs_desc))
+            print('SKIPPING COMPLETE: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, denoisertrain, optimizer_desc, epochs_desc))
     if evaluate:
         single_input_desc_model = Model(inputs=desc_model.get_layer(index=3).get_input_at(0), outputs=desc_model.get_layer(index=3).get_output_at(0))
-        run_evaluations(single_input_desc_model, model_type_desc, model_type_denoise, optimizer_desc, optimizer_denoise, seqs_val, dir_dump, dir_ktd,
-                        desc_suffix, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean, keep_results=keep_results)
+        run_evaluations(single_input_desc_model, seqs_val, dir_dump, dir_ktd, dir_eval, denoisereval, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean, keep_results=keep_results)
 
     return (denoise_val, denoise_train, desc_val, desc_train)
 
@@ -197,15 +213,16 @@ if __name__=='__main__':
         try:
             import tensorflow as tf
             with tf.Session() as sess:
-                print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer_denoise'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer_desc'], job['desc_suffix'], job['epochs_desc']))
+                print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer_denoise'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer_desc'], job['denoisertrain'], job['epochs_desc']))
                 (denoise_val, denoise_train, desc_val, desc_train) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'],
                                                                           job['evaluate'], job['pca'], job['optimizer_desc'], job['optimizer_denoise'], job['model_denoise'],
                                                                           job['epochs_denoise'], job['model_desc'], job['epochs_desc'],
                                                                           job['use_clean'], job['nodisk'], job['denoise_suffix'],
-                                                                          job['desc_suffix'], denoise_val, denoise_train, desc_val, desc_train, job['keep_results'])
+                                                                          job['denoisertrain'], denoise_val, denoise_train, desc_val, desc_train, job['keep_results'])
         except KeyboardInterrupt:
             print("CANCELLING: cancelling the current job due to Ctrl+C. Continuing run.")
         except BaseException as e:
+            # raise e # Remove the comment for debugging purposes in the terminal
             print("EXCEPTION!!! Please see errors.log for details. Continuing run.")
             with open("./errors.log", 'a+') as error_file:
                 error_file.write(str(e) + "\n" + str(job) + "\n")

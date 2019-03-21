@@ -30,6 +30,8 @@ def get_denoise_model(shape, model_type):
         return UNetDenoise(shape)
     elif model_type == 'dncnn':
         return DnCNN(shape)
+    elif model_type == 'none':
+        return None # This can be used to train the descriptor on noisy data directly
     else:
         raise NotImplementedError('The denoise model type "{}" does not exist.'.format(model_type))
 

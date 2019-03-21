@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument('--use-clean', dest='use_clean', default=arg_list['use_clean'], action='store_true', help='Set this flag to train/evaluate the descriptor model on clean data, instead of data denoised using the\
                         trained denoiser.')
     parser.add_argument('--denoise-suffix', dest='denoise_suffix', default=arg_list['denoise_suffix'], type=str, action='store', help='Optional suffix for the denoiser folder.')
-    parser.add_argument('--desc-suffix', dest='desc_suffix', default=arg_list['desc_suffix'], type=str, action='store', help='Optional suffix for the descriptor folder.')
+    parser.add_argument('--denoisertrain', dest='denoisertrain', default=arg_list['denoisertrain'], type=str, action='store', help='Suffix specifying which denoiser the descriptor should be trained on data denoised by. If none specified then the model parameters are used to deduce the denoiser. If the model parameters do not correspond to the denoiser model given, then the descriptor WILL NOT be trained FURTHER, but may be evaulated on the denoiser parameters.')
     parser.add_argument('--keep-results', dest='keep_results', default=False, action='store_true', help='Set this flag to keep the results for the evaluation if you are running it. Warning: these folders can be in the GBs.')
     parsed = parser.parse_args()
     paths = {'dir_hpatches': parsed.dir_hpatches, 'dir_dump': parsed.dir_dump, 'dir_ktd': parsed.dir_ktd}
@@ -46,7 +46,7 @@ def parse_args():
         job['nodisk'] = parsed.nodisk
         job['use_clean'] = parsed.use_clean
         job['denoise_suffix'] = parsed.denoise_suffix
-        job['desc_suffix'] = parsed.desc_suffix
+        job['denoisertrain'] = parsed.denoisertrain
         job['optimizer_desc'] = parsed.optimizer_desc
         job['optimizer_denoise'] = parsed.optimizer_denoise
         job['keep_results'] = parsed.keep_results
@@ -56,9 +56,11 @@ def parse_args():
 
 def arg_checks(parsed):
     ''' Does preliminary checks to assert that the arguments are ok. '''
-    print('Denoise Model: {} (Opt:{}) (Suff:{}) (Epochs: {}), Desc Model: {} (Opt:{}) (Suff:{}) (Epochs: {})'.format(parsed['model_denoise'], parsed['optimizer_denoise'], parsed['denoise_suffix'], parsed['epochs_denoise'], parsed['model_desc'], parsed['optimizer_desc'], parsed['desc_suffix'], parsed['epochs_desc']))
+    print('Denoise Model: {} (Opt:{}) (Suff:{}) (Epochs: {}), Desc Model: {} (Opt:{}) (Suff:{}) (Epochs: {})'.format(parsed['model_denoise'], parsed['optimizer_denoise'], parsed['denoise_suffix'], parsed['epochs_denoise'], parsed['model_desc'], parsed['optimizer_desc'], parsed['denoisertrain'], parsed['epochs_desc']))
     opt_key_decode(parsed['optimizer_desc']) # Will raise an error if the opt key is invalid
     opt_key_decode(parsed['optimizer_denoise'])
+    if parsed['model_denoise'] == 'none' and not parsed['epochs_denoise'] == 0:
+        raise ValueError('If your denoise model is none it cannot be trained. Set epochs_denoise to 0.')
     if parsed['model_denoise'] not in possible_denoise_models:
         raise ValueError('Your denoise model must be one of {}. Please amend possible_denoise_models if you have created a model.'.format(possible_denoise_models))
     if parsed['model_desc'] not in possible_desc_models:

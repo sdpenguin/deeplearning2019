@@ -15,7 +15,7 @@ from dl2019.evaluate.hpatches_benchmark.utils.misc import *
 #from keras_triplet_descriptor.hpatches_benchmark.utils.results import *
 from dl2019.evaluate.results_methods import *
 
-def gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, desc_suffix, seqs_test, dir_dump, denoise_model=None, use_clean=False):
+def gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_model=None, use_clean=False):
     w = 32
     bs = 128
     output_dir = os.path.abspath(dir_dump)
@@ -24,11 +24,10 @@ def gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimi
         denoise_model = None
     else:
         noisy_patches = 1
-    file_name = model_desc + '_desc_' + optimizer_desc + '_' + desc_suffix
     for seq_path in tqdm(seqs_test):
         seq = hpatches_sequence_folder(seq_path, noise=noisy_patches)
 
-        path = os.path.join(dir_dump, os.path.join('eval', os.path.join(file_name, os.path.split(seq.name)[-1])))
+        path = os.path.join(dir_dump, os.path.join('eval', os.path.join(output_folder_name, os.path.split(seq.name)[-1])))
         if not os.path.exists(path):
             os.makedirs(path)
         for tp in tps:
@@ -69,11 +68,10 @@ def gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimi
             res_desc = np.reshape(res_desc, (n_patches, -1))
             out = np.reshape(res_desc, (n_patches, -1))
             np.savetxt(os.path.join(path,tp+'.csv'), out, delimiter=';', fmt='%10.5f')   # X is an array
-    return file_name
 
-def evaluate(dir_ktd, dir_dump, desc_name, pca_power_law=False):
-    path = os.path.join(dir_dump, os.path.join('eval', desc_name))
-    results_dir = os.path.join(dir_dump, os.path.join('results', desc_name))
+def evaluate(dir_ktd, dir_dump, output_folder_name, pca_power_law=False):
+    path = os.path.join(dir_dump, os.path.join('eval', output_folder_name))
+    results_dir = os.path.join(dir_dump, os.path.join('results', output_folder_name))
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
 
@@ -85,9 +83,9 @@ def evaluate(dir_ktd, dir_dump, desc_name, pca_power_law=False):
     splt = splits['a']
 
     for t in ['verification', 'matching', 'retrieval']: # TODO: Possibly split these up and enable the user to run only 1
-        res_path = os.path.join(results_dir, desc_name+"_"+t+"_"+splt['name']+".p")
+        res_path = os.path.join(results_dir, output_folder_name+"_"+t+"_"+splt['name']+".p")
         if os.path.exists(res_path):
-            print("Results for the {}, {} tasks, split {}, already cached!".format(desc_name, t, splt['name']))
+            print("Results for the {}, {} tasks, split {}, already cached!".format(output_folder_name, t, splt['name']))
         else:
             res = methods[t](os.path.join(dir_ktd, 'tasks'),descr,splt)
             dill.dump(res, open(res_path, "wb"))
@@ -97,19 +95,19 @@ def evaluate(dir_ktd, dir_dump, desc_name, pca_power_law=False):
         print('>> Running evaluation for %s normalisation' % blue("pca/power-law"))
         compute_pcapl(descr,splt)
         for t in ['verification', 'matching', 'retrieval']:
-            res_path = os.path.join(results_dir, desc_name+"_pcapl_"+t+"_"+splt['name']+".p")
+            res_path = os.path.join(results_dir, output_folder_name+"_pcapl_"+t+"_"+splt['name']+".p")
             if os.path.exists(res_path):
                 print("Results for the %s, %s task, split %s,PCA/PL already cached!" %\
-                      (desc_name,t,splt['name']))
+                      (output_folder_name,t,splt['name']))
             else:
                 res = methods[t](os.path.join(dir_ktd, 'tasks'),descr,splt)
                 dill.dump(res, open(res_path, "wb"))
 
-def results(desc_name, dir_dump, dir_ktd, pca_power_law=False, more_info=False):
-    results_dir = os.path.join(dir_dump,'results',desc_name)
+def results(output_folder_name, dir_dump, dir_ktd, pca_power_law=False, more_info=False):
+    results_dir = os.path.join(dir_dump,'results',output_folder_name)
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
-    descrs = [desc_name]
+    descrs = [output_folder_name]
     with open(os.path.join(dir_ktd, "splits.json")) as f:
         splits = json.load(f)
     splt = splits['a'] # TODO: split 'a' is hardcoded in this function and the one above
@@ -126,25 +124,46 @@ def results(desc_name, dir_dump, dir_ktd, pca_power_law=False, more_info=False):
     if not os.path.exists(os.path.join(dir_dump, 'overall_results')):
         os.makedirs(os.path.join(dir_dump, 'overall_results'))
     try:
-        with open(os.path.join(dir_dump, os.path.join('overall_results', desc_name + '.npy')), 'w+') as results_file:
+        with open(os.path.join(dir_dump, os.path.join('overall_results', output_folder_name + '.npy')), 'w+') as results_file:
             np.save(results_file, np.array(results_array))
     except TypeError:
-        with open(os.path.join(dir_dump, os.path.join('overall_results', desc_name + '.npy')), 'w+b') as results_file:
+        with open(os.path.join(dir_dump, os.path.join('overall_results', output_folder_name + '.npy')), 'w+b') as results_file:
             np.save(results_file, np.array(results_array))
 
-def run_evaluations(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, seqs_test, dir_dump, dir_ktd, desc_suffix, pca_power_law=False, denoise_model=None, use_clean=False, keep_results=False):
-    print('EVALUATING: Generating a descriptor array for desc Model: {} Opt: {} Suffix: {} Clean: {}.'.format(model_desc, optimizer_desc, desc_suffix, use_clean))
-    desc_name = gen_desc_array(desc_model, model_desc, model_denoise, optimizer_desc, optimizer_denoise, desc_suffix, seqs_test, dir_dump, denoise_model=denoise_model, use_clean=False)
-    evaluate(dir_ktd, dir_dump, desc_name, pca_power_law)
-    results(desc_name, dir_dump, dir_ktd, pca_power_law)
+def run_evaluations(desc_model, seqs_test, dir_dump, dir_ktd, descriptor_name, denoisereval, pca_power_law=False, denoise_model=None, use_clean=False, keep_results=False):
+    print('EVALUATING: Generating a descriptor array for desc Model: {} Clean: {}.'.format(descriptor_name, use_clean))
+    output_folder_name = descriptor_name
+    if use_clean:
+        output_folder_name = output_folder_name + '_clean' # Denoisereval will be ignored anyway
+    else:
+        output_folder_name = output_folder_name + '_' + denoisereval
+
+    if os.path.exists(os.path.join(dir_dump, os.path.join('overall_results', output_folder_name))):
+        print('SKIPPING EVALUATION: Evaluation file exists in overall_results directory.')
+        return
+
+    gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_model=denoise_model, use_clean=use_clean)
+    evaluate(dir_ktd, dir_dump, output_folder_name, pca_power_law)
+    results(output_folder_name, dir_dump, dir_ktd, pca_power_law)
     if not keep_results:
         # These folders are often in excess of 1GB
-        shutil.rmtree(os.path.join(dir_dump, os.path.join('eval', desc_name)))
-        shutil.rmtree(os.path.join(dir_dump, os.path.join('results', desc_name)))
+        shutil.rmtree(os.path.join(dir_dump, os.path.join('eval', output_folder_name)))
+        shutil.rmtree(os.path.join(dir_dump, os.path.join('results', output_folder_name)))
 
-def load_results(dir_dump, model_desc, optimizer_desc, use_clean, desc_suffix):
+def load_results(dir_dump, descriptor, denoisertrain, denoisereval, use_clean):
     ''' Loads npy file results that have been generated and saved in dir_dump/overall_results.
         If use_clean is True, then simply set model_denoise etc. to None when you call this function.'''
-    file_name = model_desc + '_desc_' + optimizer_desc + '_' + desc_suffix
+    file_name = descriptor
+    if not denoisertrain:
+        file_name = file_name + '_clean'
+    else:
+        file_name = file_name + '_' + denoisertrain
+    if not denoisereval and not use_clean:
+        file_name = file_name + '_none_default'
+    elif use_clean:
+        file_name = file_name + '_clean'
+    else:
+        file_name = file_name + '_' + denoisereval
+
     results = np.load(os.path.join(dir_dump, 'overall_results', file_name + '.npy'))
     return results
