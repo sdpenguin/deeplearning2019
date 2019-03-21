@@ -138,7 +138,7 @@ def run_evaluations(desc_model, seqs_test, dir_dump, dir_ktd, descriptor_name, d
     else:
         output_folder_name = output_folder_name + '_' + denoisereval
 
-    if os.path.exists(os.path.join(dir_dump, os.path.join('overall_results', output_folder_name))):
+    if os.path.exists(os.path.join(dir_dump, os.path.join('overall_results', output_folder_name + '.npy'))):
         print('SKIPPING EVALUATION: Evaluation file exists in overall_results directory.')
         return
 
