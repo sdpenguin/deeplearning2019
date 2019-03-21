@@ -11,6 +11,7 @@ import cv2
 import random
 import json
 import argparse
+import datetime
 
 from keras.models import Model
 
@@ -178,7 +179,7 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
         else:
             print('SKIPPING COMPLETE: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, desc_suffix, optimizer_desc, epochs_desc))
     if evaluate:
-        single_input_desc_model = Model(inputs=desc_model.get_layer(3).get_input_at(0), outputs=desc_model.get_layer(index=3).get_output_at(0))
+        single_input_desc_model = Model(inputs=desc_model.get_layer(index=3).get_input_at(0), outputs=desc_model.get_layer(index=3).get_output_at(0))
         run_evaluations(single_input_desc_model, model_type_desc, model_type_denoise, optimizer_desc, optimizer_denoise, seqs_val, dir_dump, dir_ktd,
                         desc_suffix, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean, keep_results=keep_results)
 
@@ -186,7 +187,8 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
 
 if __name__=='__main__':
     if os.path.exists("./errors.log"): # Get rid of ye olde error file
-        os.rename("errors.log", "errors_old.log")
+        with open("./errors.log", "a+") as error_file:
+            error_file.write("\n\n" + str(datetime.datetime.now()) + "\n\n")
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Reduce tesnsorflow warning output
     (paths, jobs) = parse_args()
     # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
@@ -201,6 +203,8 @@ if __name__=='__main__':
                                                                           job['epochs_denoise'], job['model_desc'], job['epochs_desc'],
                                                                           job['use_clean'], job['nodisk'], job['denoise_suffix'],
                                                                           job['desc_suffix'], denoise_val, denoise_train, desc_val, desc_train, job['keep_results'])
+        except KeyboardInterrupt:
+            print("CANCELLING: cancelling the current job due to Ctrl+C. Continuing run.")
         except BaseException as e:
             print("EXCEPTION!!! Please see errors.log for details. Continuing run.")
             with open("./errors.log", 'a+') as error_file:
