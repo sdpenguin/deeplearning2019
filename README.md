@@ -15,9 +15,94 @@ keras_triplet_decriptor and dl2019 as Python packages so that they are accessibl
 1. Download this git repository and run the ``init.sh`` file using ``bash``. This will download the HPatches dataset to the folder 
 to your computer, as well as another repository by MatchLab-Imperial called ``keras_triplet_descriptor``. It will run two setup
 files that install the current repository and the ``keras_triplet_descriptor`` repository as Python packages so that they are
-globally accessible.
+globally accessible. Note that if you do not wish to run ``init.sh`` directly then you may wish to have a look at the section ``Setting Up the Environment`` below to understand what the script does so that you can do the equivalent operations yourself.
 2. Run ``python dl2019/main.py`` with the required arguments. You can find out what is needed using the corresponding help ``python dl2019/main.py -h``.
 3. To run tensorboard and visualise the training and model, run ``tensorboard --logdir log_dir`` where ``log_dir`` is the parameter specified when you run ``main.py``.
+
+## Setting up the Environment (init.sh)
+
+1. Download the ``keras_triplet_descriptor`` repository from Github: https://github.com/MatchLab-Imperial/keras_triplet_descriptor by running ``git clone https://github.com/MatchLab-Imperial/keras_triplet_descriptor``
+3. Run the following two lines in order to make ``keras_triplet_descriptor`` an installable package and install it so that it is globally accessible:
+```
+echo > ./keras_triplet_descriptor/__init__.py
+# Replace the absolute package names with keras_triplet_descriptor.[Package] in utils
+sed -i -e 's/ read_data/ keras_triplet_descriptor.read_data/g' ./keras_triplet_descriptor/utils.py
+python3 ktd_setup.py install --force
+```
+4. Run the following lines of code to download the dataset into a folder called ``hpatches``:
+```
+wget -O hpatches_data.zip https://imperialcollegelondon.box.com/shared/static/ah40eq7cxpwq4a6l4f62efzdyt8rm3ha.zip
+  unzip -q ./hpatches_data.zip
+  rm ./hpatches_data.zip
+```
+5. Install the following Python modules using ``pip``. Note that ``tensorflow`` is reinstalled. You may skip this step if you do not wish to reinstall ``tensorflow``. You will be prompted as to whether you do if you run ``init.sh`` in any case:
+```
+pip install keras opencv-python tqdm pandas matplotlib joblib dill tabulate scikit-image
+pip uninstall tensorflow tensorflow-gpu
+pip install tensorflow-gpu
+```
+6. Run the setup script via ``python3 setup.py install --force`` to install the ``dl2019`` Python package.
+
+## Running the program
+
+There are currently two ways to run the program. Either you run the program for one set of parameters by specifying the command line arguments directly, or you can use the ``-f`` flag to specify the path to a ``.json`` file containing a list of dictionaries, where each dictionary is a dictionary of the optional arguments. An example ``.json`` file containing a selection of the model specifications run is shown in ``agendas/models.json``.
+
+### Running with command line arguments
+
+You can run a single denoiser and descriptor model using the following syntax:
+
+``python dl2019/main.py dir_hpatches dir_dump dir_ktd [ -e --evaluate ] [ --pca ] [ --model-denoise baseline ] [ --model-desc baseline ] [ --epochs-denoise 0 ] [ --epochs-desc 0 ] [ --nodisk ] [ --use-clean ] [ --denoise-suffix ] [ --denoiser-train ] [ --optimizer-desc default ] [ --optimizer-denoise default ] [ --keep-results ]
+
+Here is an explanation behind the parameters, which can also be obtained by running ``python dl2019/main.py --help``. When these command line arguments are translated into parameter names the dashes in their names are replaced by underscores e.g. ``dir-hpatches`` becomes ``dir_hpatches``:
+
+| parameter | Default Value | Meaning |
+| ---------- |:--------------:|:------------------:|
+| dir-hpatches | N/A | Base hpatches directory containing all hpatches data in the default format. |
+| dir-dump | N/A | Directory to place DenoiseHPatchesImproved formatted hpatches data, weights and losses. |
+| dir-ktd | N/A | The keras_triplet_descriptor respository directory. |
+| agenda-file (-f) | False | Specify a file path containing a JSON specification for jobs to run. Please see README for spec details. |
+| evaluate | False | Set this flag to run evaluation (verification/matching/retrieval) tests on the specified descriptor model (with or without denoiser depending on use-clean. |
+| pca | default=False | Use the pca_power_law for evaluation. This may take longer, but generates more information. |
+| model-denoise | baseline | The model to run for the denoiser. Must be one of the possible_denoise_models in utils/possibles.py. |
+| model-desc | baseline | The model to run for the descriptor. Must be one of possible_desc_models in utils/possibles.py |
+| epochs-denoise | 0 | Number of epochs for the denoiser to be run |
+epochs-desc | 0 | Number of epochs for the descriptor |
+| optimizer-desc | default | Descriptor optimizer code to specify the optimizers you want to use. Default will be loaded if not specified for the model |
+| optimizer-denoise | baseline | Denoiser optimizer code to specify the optimizers you want to use. Default will be loaded if not specified for the model. For more information on the possible optimizer codes, see below. |
+| nodisk | False | Set this flag to avoid saving or loading HPatches Denoiser Generators from disk. The HPatches data will be regenerated from scratch and not saved after it is generated. This may be useful for low-RAM systems. |
+| use-clean | False | Set this flag to train/evaluate the descriptor model on clean data, instead of data denoised using the denoiser. |
+| denoise-suffix | None | Optional suffix for the denoiser folder. |
+| denoisertrain | None | Suffix specifying which denoiser the descriptor should be trained on data denoised by. If none specified then the model parameters are used to deduce the denoiser. If the model parameters do not correspond to the denoiser model given, then the descriptor WILL NOT be trained FURTHER, but may be evaulated on the denoiser parameters. |
+
+#### Optimizer Codes
+
+Please see the section on Changing the Optmizer below.
+
+### Running with a json script
+
+Run the following command:
+
+``python dl2019/main.py dir_hpatches dir_dump dir_ktd -f agendas/models.json``
+
+Where you replace ``models.json`` with your own specification. Any optional paramter can be specified in a job definition in the ``json`` file (any parameter other than dir_hpatches dir_dump, dir_ktd) as well as of course the ``-f`` parameter. Note that if the ``-f`` option is used, then the other optional parameters are ignored.
+
+### A note on denoisertrain
+
+The denoisertrain, also known in ``main.py`` as ``desc_suffix`` for legacy reasons, will be one of three things:
+
+1. Of the following format (model_denoise)_(optimizer_denoise) e.g. ``baseline_adam1e-3m0.9``.
+2. ``none_default``: this means that the descriptor data was trained on noisy data, but no denoiser was used to denoise the data prior to passing it to the descriptor.
+3. ``clean``: the descriptor was trained on clean data.
+
+## Overview of the ``dl2019`` package
+
+The ``dl2019`` has grown to be a complex set of interacting scripts, however there is a method to the madness. The first port of call for anything is the script ``main.py``. This is the script that calls all other modules and scripts in the package and is the entry point of the program. It contains top level functions that will load models, load generators and run the models, while handling the necessary parameters.
+
+The ``dl2019`` package contains three subpackages: ``utils``, ``models`` and ``evaluate``.They respectively perform general operations, model operations and evaluation (testing) operations.
+
+The second important script is ``utils/argparse.py``. This is a script that includes the parsing of the command line arguments. If you wish to modify these, then this is the script you must look to first. Note that in order to modify the command line arguments, you must also change a few other things - a detailed explanation is given in the section ``Adding command line arguments``.
+
+The way that ``main.py`` works can be seen by examining the comments in the file.
 
 ## Model Types
 
@@ -27,13 +112,16 @@ The current model types are listed below with their given architectures for both
 | ---------- |:--------------:|:------------------:|
 | baseline   | Shallow U-Net (SGD LR:1e-5) | Modified HardNet (L2 Net)  (SGD LR:0.1) |
 | baselinemse   | Shallow U-Net (SGD LR:1e-5) | N/A |
-| unet       | U-Net (ADAM LR:1e-5) | N/A |
+| unet       | Modified U-Net (ADAM LR:1e-5) | N/A |
+| dncnn       | 17 Layer DnCNN (ADAM LR:1e-5) | N/A |
+| baselinedog       | N/A | Baseline Architecture with Difference of Gaussians Preliminary Filtering (ADAM LR:1e-5) |
+| baseline(100,250,500)       | N/A | Baseline Architecture with Batch Sizes of 100, 250 or 500 (pick one) (ADAM LR:1e-5) |
 
 In "Creating New Models" below, you can see how to add your own custom models to the program.
 
 ## Output directories
 
-You can find the model weights and train/validation losses in the directory ``dump/model_type_[desc, denoise]``. Functions for loading and manipulating this data are already provided in the ``dl2019/eval/eval.py`` Python module.
+You can find the model weights and train/validation losses in the directory ``dump/model_type_[desc, denoise]``. Functions for loading and manipulating this data are already provided in the ``dl2019/evaluate/evaluate.py`` Python module.
 
 ### Plotting the Data
 
@@ -46,10 +134,14 @@ from matplotlib import pyplot as plt
 dir_dump = 'dump'
 model_type = 'baseline'
 suffix = 'desc'
-suffix2 = None
+optimizer_desc = 'sgd1e-1'
+suffix2 = 'default_none_baseline_sgd1e-4' # The denoisers used for evaluation and testing respectively
 
-make_plot(dir_dump, model_type, suffix, suffix2, max_epoch=10)
+# You can set max_epoch to only plot up to a particular epoch, or override_checks to skip validation checks on the model_type, suffix and optimizer
+make_plot(dir_dump, model_type, suffix, optimizer, suffix2=None, max_epoch=20, override_checks=False, mae=True)
 ```
+
+Note: suffix2 should be of the form: ``(model_denoise_train)_(optimizer_denoise_train)_(model_denoise_eval)_(optimizer_denoise_eval)``. Please see the note on ``denoisertrain`` above. ``denoisertrain`` is equivalent to ``(model_denoise_train)_(optimizer_denoise_train)``.
 
 ## Creating New Models
 
@@ -100,9 +192,9 @@ This is the folder where the hpatches data is extracted and obtained from when t
 
 The dump folder contains several items:
 
-1. Model folders with the ``.h5`` and ``.npy`` files from model runs. The naming scheme is ``[model_type]_[desc, denoise]_[optimizer]`` where ``optimizer`` and ``model_type`` are the same as the parameters passed to the program by the names ``--optimizer`` and ``--model-denoise`` or ``model-desc``.
+1. Model folders with the ``.h5`` and ``.npy`` files from model runs. The naming scheme is ``[model_type]_[desc, denoise]_[optimizer]_[suffix]`` where ``optimizer`` and ``model_type`` are the same as the parameters passed to the program by the names ``--optimizer-denoise`` or ``optimizer-desc`` and ``--model-denoise`` or ``model-desc``. Suffix will be the denoiser used for training of the format ``(model_denoise)_(optimizer_denoise)`` for the descriptor, and will either be nothing or the value passed to ``suffix-denoise`` (see above section on command line arguments) for the denoiser.
 2. The ``eval`` and ``results`` folders where the output of the benchmarking procedure will go, under the same subfolder names as above.
-3. The saved denoiser data ``.dat`` files for faster loading so long as ``--nodisk`` is not set. 
+3. The saved denoiser data ``.dat`` files for faster loading so long as ``--nodisk`` is not set.
 
 ### Keras Triplet Descriptor Folder ``--dir_ktd``
 
@@ -110,30 +202,41 @@ This is the folder containing the (modified if ``init.sh`` has done its job) ``k
 
 ## Experiments and Results
 
-Results of the experiments that have been performed this far are given below. Note that some experiments were performed twice for different numbers of epochs. Some rows are empty since these experiments are yet to be performed. Note that the hyperparameters for the optimiser are also given since these may not be equal to those of the model in the code. This is because if at one stage the optimiser hyperparameters are the best known, they may not be in the future once more modifications to the optimiser have been explored for that particular model. Note that for consistency and comparison purposes the mean absolute error is given as the metric, regardless of the loss function used: 
+A few of the experiments that have been performed this far are given below. Note that some experiments were performed twice for different numbers of epochs. Some rows are empty since these experiments are yet to be performed. Note that the hyperparameters for the optimiser are also given since these may not be equal to those of the model in the code. This is because if at one stage the optimiser hyperparameters are the best known, they may not be in the future once more modifications to the optimiser have been explored for that particular model. Note that for consistency and comparison purposes the mean absolute error is given as the metric, regardless of the loss function used: 
 
-### Denoiser
+### Baseline Denoiser MAE Results
 
 | model_type | Optimiser      | Epochs | Min Val Loss (MAE) |  id  |
-| ---------- |:--------------:|:---------------------:|:------:|:---------------:|:------------:|:-------------:|:----:|
+| ---------- |:--------------:|:---------------------:|:------:|:---------------:|
 | baseline   | SGD LR:1e-5 Momentum:0.9 (Nesterov) | 100 | 5.184 | 1 |
 | baseline   | Adam LR:1e-5   | 100 | 5.118 | 2 |
 | baseline   | Adam LR:1e-5 Momentum:0.8 | 15 | 5.535  | 3 |
 | baseline   | Adam LR:1e-3   | 15 | 5.016 | 4 |
-| baseline  | Adam LR:1e-4   | 15 | 5.051 | 5 |
-| unet   | SGD LR:1e-5 Momentum:0.9 |  |  | 6 |
-| unet   | Adam LR:1e-5  |  |  | 7 |
-| unet   | Adam LR:1e-4  | 10 |  | 8 |
-| unet   | Adam LR:1e-3 | 10 |  | 9 |
+| baseline   | Adam LR:1e-4   | 15 | 5.051 | 5 |
 
 
 
+### Evaluation Results
 
-### Descriptor
+Note the optimiser is specified as an optimizer code whose form is given in the section on Changing the Optimizer above.
 
-| model_type | Optimiser      | Denoiser Train (id) | Epochs | Min Val Loss (Triplet) | mAP Verification| mAP Matching | mAP Retrieval | Denoiser Eval (id) |
-| ---------- |:--------------:|:-------------------:|:------:|:----------------------:|:---------------:|:------------:|:-------------:|:------------------:|
-| baseline   | SGD LR:0.1 | 1 | 100 | 0.429 |  |  |  |  |
-| baseline   | Adam LR:1e-3 | 2 | 100 | 0.444 | 0.770 | 0.156 | 0.463 | 2 |
-| baseline   | SGD LR:0.1 | N/A | 100 | 0.047 |  |  |  |  |
-| baseline   | Adam LR:1e-3 | N/A | 100 | 0.061 |  |  |  |  |
+| model_type_denoise | optimizer_denoise | model_type_desc | optimizer_desc | mAP Verification| mAP Matching | mAP Retrieval |
+| ---------- |:--------------:|:-------------------:|:------:|:----------------------:|:---------------:|:------------:|
+| baseline | Adam1e-3 | baseline | SGD1e-1 | 0.809 | 0.213 | 0.510 |
+| baseline | Adam1e-4 | baseline | SGD1e-1 | 0.799 | 0.196 | 0.490 |
+| baseline | Adam1e5m0.99 | baseline | SGD1e-1 | 0.817 | 0.221 | 0.525 |
+| dncnn | Adam1e-3 | baseline | SGD1e-1 | 0.802 | 0.207 | 0.500 |
+| unet | Adam1e-3 | baseline | SGD1e-1 | 0.800 | 0.202 | 0.493 |
+| unet | Adam1e-4 | baseline | SGD1e-1 | 0.801 | 0.205 | 0.500 |
+| baseline | Adam1e-4 | baseline100 | SGD1e-1 | 0.817 | 0.221 | 0.525 |
+| baseline | Adam1e-4 | baselinedog | Adam1e-4 |0.827 | 0.245 | 0.519 |
+
+#### Conclusions
+
+We see that the DoG method is the one that proved to show the best performance in both the verification and matching tasks. It would be interesting in future to run the DoG method again, using the optimized denoisers as the denoisers.
+
+The odd thing about the performance is that it seems that the optimizers with the lower MAE (the baseline ones) outperformed the U-Net and DnCNN optimizers in the three tasks given the same . This may be because the descriptors trained on this data had an easier job to do presented with cleaner data, therefore despite the MAE going down during training, during testing, the descriptor may not have been able to perform as well on novel data.
+
+Any of the experiments above can be rerun as follows. Note that if you have used ``init.sh`` to setup your directory, then dir_hpatches=``hpatches``, dir_dump=``dump`` and dir_ktd=``keras_triplet_descriptor``:
+
+``python3 dl2019/main.py dir_hpatches dir_dump dir_ktd -e --model-denoise model_type_denoise --epochs-denoise 20 --optimizer-denoise optimizer_denoise --model-desc model_type_desc --epochs-desc 20 --optimizer-desc optimizer_desc``

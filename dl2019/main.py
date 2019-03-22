@@ -61,7 +61,8 @@ def get_denoisertrain(denoisertrain, model_type_denoise, optimizer_denoise, deno
 
 #%%
 def walk_hpatches(dir_ktd, dir_hpatches):
-    ''' Obtains information about the directories in the hpatches folder. '''
+    ''' Obtains information about the directories in the hpatches folder.
+        Returns ``(seqs_val, seqs_train, train_fnames, test_fnames)``.'''
     # Directories for training and testing
     splits_file = os.path.join(dir_ktd, 'splits.json')
     try:
@@ -82,7 +83,11 @@ def walk_hpatches(dir_ktd, dir_hpatches):
 
 #%%
 def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, denoisertrain, optimizer_desc, optimizer_denoise):
-    ''' Returns the training directories for the denoiser and descriptor. '''
+    ''' Returns the training directories for the denoiser and descriptor as ``(dir_denoise, dir_desc, dir_eval)``.
+        denoisertrain is the optional suffix supplied indicating the descriptor should be evaluated on data denoised using that model, rather than
+        the denoiser to be trained and returned as dir_denoise.
+        dir_denoise and dir_desc are the folder names within dir_dump of the descriptor and denoiser to be trained and used for evaluation.
+        dir_desc is the folder name for training the descriptor which includes the denoisertrain suffix.'''
     # Denoise
     dir_denoise = os.path.join(dir_dump, model_type_denoise + '_denoise' + '_{}'.format(optimizer_denoise))
     if denoise_suffix:
@@ -100,13 +105,13 @@ def get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_d
 
 #%%
 def get_denoise_generator(seqs_val, seqs_train, dir_dump, nodisk):
-    ''' Returns generators for train and test data for training the denoiser. '''
+    ''' Returns generators for train and test data for training the denoiser as ``(denoise_val, denoise_train)``. '''
     denoise_val = DenoiseHPatchesImproved(seqs_val, dump=dir_dump, suff='val', nodisk=nodisk)
     denoise_train = DenoiseHPatchesImproved(seqs_train, dump=dir_dump, suff='train', nodisk=nodisk)
     return (denoise_val, denoise_train)
 
 def get_denoise_mod(model_type, shape, training_dir, optimizer):
-    ''' Returns a denoise model compiled with an (ADAM) optimiser as default. '''
+    ''' Returns ``(denoise_model, callbacks, max_epoch)`` where ``max_epoch`` is the maximum epoch of the descriptor that was loaded if one already existed in ``training_dir`` '''
     if not os.path.exists(training_dir):
         os.makedirs(training_dir)
     # Initialise Denoise Model
@@ -125,13 +130,14 @@ def get_denoise_mod(model_type, shape, training_dir, optimizer):
     return (denoise_model, callbacks, max_epoch)
 
 def train_denoise(denoise_model, callbacks, max_epoch, epochs_denoise, denoise_val, denoise_train):
-    ''' Trains a denoise model. '''
+    ''' Trains the denoiser model for ``epochs_denoise`` with the given callbacks, training and validation generators'''
     # Run model
     denoise_model.fit_generator(generator=denoise_train, epochs=epochs_denoise-max_epoch, verbose=1, validation_data=denoise_val, callbacks=callbacks)
 
 #%%
 def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean, dog, batch_size):
-    ''' Gets the generator for train and test data for the descriptor model training. '''
+    ''' Gets the generator for train and test data for the descriptor model training as ``(desc_val, desc_train)``, denoised using denoise_model.
+        If dog is true then the generators will generate data suitable for the DoG descriptor model (5 channels). '''
     hPatches = HPatches(train_fnames=train_fnames, test_fnames=test_fnames,
                     denoise_model=denoise_model, use_clean=use_clean)
     desc_train = DataGeneratorDescImproved(*hPatches.read_image_file(dir_hpatches, train=1), num_triplets=100000, dog=dog, batch_size=batch_size)
@@ -139,7 +145,7 @@ def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, u
     return (desc_val, desc_train)
 
 def get_desc_mod(model_type, shape, training_dir, optimizer):
-    ''' Returns a descriptor model. '''
+    ''' Returns ``(desc_model, callbacks, max_epoch)`` where ``max_epoch`` is the maximum epoch of the descriptor that was loaded if one already existed in ``training_dir`` '''
     if not os.path.exists(training_dir):
         os.makedirs(training_dir)
     desc_model = get_descriptor_model(shape, model_type)
@@ -157,7 +163,7 @@ def get_desc_mod(model_type, shape, training_dir, optimizer):
     return (desc_model, callbacks, max_epoch)
 
 def train_descriptor(desc_model, callbacks, max_epoch, epochs_desc, desc_val, desc_train):
-    ''' Trains the descriptor. '''
+    ''' Trains the descriptor model sepcified with the given callbacks and denoiser model used to denoise the data, for ``epochs_desc`` with the given training and validation generators '''
     # Run model
     desc_model.fit_generator(generator=desc_train, epochs=epochs_desc-max_epoch, verbose=1, validation_data=desc_val, callbacks=callbacks)
 
@@ -182,6 +188,8 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
     (descriptor_training, denoisertrain, denoisereval) = get_denoisertrain(denoisertrain, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean)
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
     (dir_denoise, dir_desc, dir_eval) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, denoisertrain, optimizer_desc, optimizer_denoise)
+
+    # Run and/or get denoiser
     if epochs_denoise > 0:
         import tensorflow as tf
         # Do not regenerate the generators every time
@@ -197,6 +205,8 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
         (denoise_model, _, _) = get_denoise_mod(model_type_denoise, (32,32,1), dir_denoise, optimizer_denoise)
     else:
         denoise_model = None
+
+    # Run and/or get descriptor
     if epochs_desc > 0:
         import tensorflow as tf # Fix 1.0 Val Loss
         # Do not regenerate the generators every time
@@ -210,19 +220,28 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
             train_descriptor(desc_model, desc_callbacks, max_epoch_desc, epochs_desc, desc_val, desc_train)
         else:
             print('SKIPPING COMPLETE: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, denoisertrain, optimizer_desc, epochs_desc))
+    
+    # Evaluate dir_dump/dir_eval (trained on data from denoisertrain) and dir_dump/dir_denoise
     if evaluate:
         single_input_desc_model = Model(inputs=desc_model.get_layer(index=3).get_input_at(0), outputs=desc_model.get_layer(index=3).get_output_at(0))
         run_evaluations(single_input_desc_model, seqs_val, dir_dump, dir_ktd, dir_eval, denoisereval, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean, keep_results=keep_results, dog=dog)
 
+    # Return generators and the batch sizes in order to avoid redundant reloading/generation of data between jobs
     return (denoise_val, denoise_train, desc_val, desc_train, prev_batch_size)
 
 if __name__=='__main__':
+    # Create the error log file
     if os.path.exists("./errors.log"): # Get rid of ye olde error file
         with open("./errors.log", "a+") as error_file:
             error_file.write("\n\n" + str(datetime.datetime.now()) + "\n\n")
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Reduce tesnsorflow warning output
+    # Reduce tesnsorflow warning output (remove all but errors)
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    # Parse commandline arguments to get the paths and a list of jobs to run
     (paths, jobs) = parse_args()
+    # Set initial values for generators and batch_size
     (denoise_val, denoise_train, desc_val, desc_train, prev_batch_size) = (None, None, None, None, 50)
+    # Iterate over jobs, running each one with its parameters
+    # Wrapped in try except clause to let subsequent jobs continue if a job is cancelled or fails due to an error
     for job in jobs:
         try:
             # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
