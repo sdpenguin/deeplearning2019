@@ -226,10 +226,12 @@ if __name__=='__main__':
     for job in jobs:
         try:
             # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
+            if 'desc_model' in locals() or 'desc_model' in globals():
+                del desc_model
             import tensorflow as tf
             with tf.Session() as sess:
                 print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer_denoise'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer_desc'], job['denoisertrain'], job['epochs_desc']))
-                (denoise_val, denoise_train, desc_val, desc_train) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'],
+                (denoise_val, denoise_train, desc_val, desc_train, prev_batch_size) = main(paths['dir_ktd'], paths['dir_hpatches'], paths['dir_dump'],
                                                                           job['evaluate'], job['pca'], job['optimizer_desc'], job['optimizer_denoise'], job['model_denoise'],
                                                                           job['epochs_denoise'], job['model_desc'], job['epochs_desc'],
                                                                           job['use_clean'], job['nodisk'], job['denoise_suffix'],
