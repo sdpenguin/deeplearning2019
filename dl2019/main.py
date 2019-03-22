@@ -12,11 +12,12 @@ import random
 import json
 import argparse
 import datetime
+import traceback
 
 from keras.models import Model
 
 try:
-    from keras_triplet_descriptor.read_data import HPatches, DataGeneratorDesc, hpatches_sequence_folder, tps
+    from keras_triplet_descriptor.read_data import HPatches, hpatches_sequence_folder, tps
     # If an import fails here, you need to make utils import relatively
     from keras_triplet_descriptor.utils import generate_desc_csv, plot_denoise, plot_triplet
 except ImportError as e:
@@ -25,7 +26,7 @@ or run from the directory above it. You may also need to add an __init__.py file
 
 from dl2019.utils.argparse import parse_args
 from dl2019.utils.datastats import data_stats
-from dl2019.utils.hpatches import DenoiseHPatchesImproved
+from dl2019.utils.hpatches import DenoiseHPatchesImproved, DataGeneratorDescImproved
 from dl2019.utils.general import set_random_seeds
 from dl2019.models.load_opt import opt_key_decode
 from dl2019.models.callback import SaveProgress
@@ -34,11 +35,11 @@ from dl2019.evaluate.benchmark import run_evaluations
 
 #%%
 def get_denoisertrain(denoisertrain, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean):
-    ''' Returns names of the training denoiser and the evaluation denoiser and a parameter called train_descriptor that specifies whether or not to train the descriptor.
+    ''' Returns names of the training denoiser and the evaluation denoiser and a parameter called descriptor_training that specifies whether or not to train the descriptor.
         denoisertrain is the denoiser that the descriptor uses to denoise the images before training.
         denoisereval is the denoiser used for evaluating if evaluate is True. It is the denoiser to actually be loaded..
-        train_descriptor will be True if the two are equal, but false if not.'''
-    train_descriptor = True # Whether or not to train the descriptor later
+        descriptor_training will be True if the two are equal, but false if not.'''
+    descriptor_training = True # Whether or not to train the descriptor later
     denoisereval = '{}_{}'.format(model_type_denoise, optimizer_denoise)
     if denoise_suffix:
         denoisereval = denoisereval + '_{}'.format(denoise_suffix)
@@ -53,10 +54,10 @@ def get_denoisertrain(denoisertrain, model_type_denoise, optimizer_denoise, deno
     else:
         if not use_clean:
             if denoisereval != denoisertrain: # You have specified a different denoiser that descriptor should be trained with
-                train_descriptor = False # Do not train the descriptor, (but maybe evaluate it with the given denoiser)
+                descriptor_training = False # Do not train the descriptor, (but maybe evaluate it with the given denoiser)
     print('The denoisertrain value has been updated to {}.'.format(denoisertrain))
 
-    return (train_descriptor, denoisertrain, denoisereval)
+    return (descriptor_training, denoisertrain, denoisereval)
 
 #%%
 def walk_hpatches(dir_ktd, dir_hpatches):
@@ -129,12 +130,12 @@ def train_denoise(denoise_model, callbacks, max_epoch, epochs_denoise, denoise_v
     denoise_model.fit_generator(generator=denoise_train, epochs=epochs_denoise-max_epoch, verbose=1, validation_data=denoise_val, callbacks=callbacks)
 
 #%%
-def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean):
+def get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean, dog, batch_size):
     ''' Gets the generator for train and test data for the descriptor model training. '''
     hPatches = HPatches(train_fnames=train_fnames, test_fnames=test_fnames,
                     denoise_model=denoise_model, use_clean=use_clean)
-    desc_train = DataGeneratorDesc(*hPatches.read_image_file(dir_hpatches, train=1), num_triplets=100000)
-    desc_val = DataGeneratorDesc(*hPatches.read_image_file(dir_hpatches, train=0), num_triplets=10000)
+    desc_train = DataGeneratorDescImproved(*hPatches.read_image_file(dir_hpatches, train=1), num_triplets=100000, dog=dog, batch_size=batch_size)
+    desc_val = DataGeneratorDescImproved(*hPatches.read_image_file(dir_hpatches, train=0), num_triplets=10000, dog=dog, batch_size=batch_size)
     return (desc_val, desc_train)
 
 def get_desc_mod(model_type, shape, training_dir, optimizer):
@@ -163,8 +164,22 @@ def train_descriptor(desc_model, callbacks, max_epoch, epochs_desc, desc_val, de
 #%%
 def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimizer_denoise, model_type_denoise, epochs_denoise, model_type_desc,
          epochs_desc, use_clean, nodisk, denoise_suffix=None, denoisertrain=None, denoise_val=None, denoise_train=None,
-         desc_val=None, desc_train=None, keep_results=None):
-    (train_descriptor, denoisertrain, denoisereval) = get_denoisertrain(denoisertrain, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean)
+         desc_val=None, desc_train=None, keep_results=None, prev_batch_size=50):
+    # Defaults
+    dog = False
+    batch_size = 50
+    # Modifications based on model names
+    if model_type_desc in ['baselinedog']: # Models that use the DoG method
+        dog = True
+    if model_type_desc in ['baseline100']:
+        batch_size = 100
+    elif model_type_desc in ['baseline250']:
+        batch_size = 250
+    elif model_type_desc in ['baseline500']:
+        batch_size = 500
+
+        
+    (descriptor_training, denoisertrain, denoisereval) = get_denoisertrain(denoisertrain, model_type_denoise, optimizer_denoise, denoise_suffix, use_clean)
     (seqs_val, seqs_train, train_fnames, test_fnames) = walk_hpatches(dir_ktd, dir_hpatches)
     (dir_denoise, dir_desc, dir_eval) = get_training_dirs(dir_dump, model_type_denoise, denoise_suffix, model_type_desc, denoisertrain, optimizer_desc, optimizer_denoise)
     if epochs_denoise > 0:
@@ -186,20 +201,20 @@ def main(dir_ktd, dir_hpatches, dir_dump, evaluate, pca, optimizer_desc, optimiz
         import tensorflow as tf # Fix 1.0 Val Loss
         # Do not regenerate the generators every time
         (desc_model, desc_callbacks, max_epoch_desc) = get_desc_mod(model_type_desc, (32,32,1), dir_desc, optimizer_desc)
-        if not train_descriptor: # Descriptor is not trained if denoisertrain does not match denoisereval
+        if not descriptor_training: # Descriptor is not trained if denoisertrain does not match denoisereval
             print("SKIPPING TRAINING: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs. Desc_suffix =/= denoise model parameters.".format(model_type_desc, denoisertrain, optimizer_desc, epochs_desc))
         elif epochs_desc - max_epoch_desc > 0:
-            if not desc_val or not desc_train:
-                (desc_val, desc_train) = get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean)
+            if not desc_val or not desc_train or batch_size != prev_batch_size:
+                (desc_val, desc_train) = get_desc_generator(dir_hpatches, train_fnames, test_fnames, denoise_model, use_clean, dog, batch_size)
             print('RUNNING: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs with denoiser {}.'.format(model_type_desc, denoisertrain, optimizer_desc, epochs_desc, denoisertrain))
             train_descriptor(desc_model, desc_callbacks, max_epoch_desc, epochs_desc, desc_val, desc_train)
         else:
             print('SKIPPING COMPLETE: descriptor ({} Suffix:{} Optimizer:{}) up to {} epochs.'.format(model_type_desc, denoisertrain, optimizer_desc, epochs_desc))
     if evaluate:
         single_input_desc_model = Model(inputs=desc_model.get_layer(index=3).get_input_at(0), outputs=desc_model.get_layer(index=3).get_output_at(0))
-        run_evaluations(single_input_desc_model, seqs_val, dir_dump, dir_ktd, dir_eval, denoisereval, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean, keep_results=keep_results)
+        run_evaluations(single_input_desc_model, seqs_val, dir_dump, dir_ktd, dir_eval, denoisereval, pca_power_law=pca, denoise_model=denoise_model, use_clean=use_clean, keep_results=keep_results, dog=dog)
 
-    return (denoise_val, denoise_train, desc_val, desc_train)
+    return (denoise_val, denoise_train, desc_val, desc_train, prev_batch_size)
 
 if __name__=='__main__':
     if os.path.exists("./errors.log"): # Get rid of ye olde error file
@@ -207,10 +222,10 @@ if __name__=='__main__':
             error_file.write("\n\n" + str(datetime.datetime.now()) + "\n\n")
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Reduce tesnsorflow warning output
     (paths, jobs) = parse_args()
-    # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
-    (denoise_val, denoise_train, desc_val, desc_train) = (None, None, None, None)
+    (denoise_val, denoise_train, desc_val, desc_train, prev_batch_size) = (None, None, None, None, 50)
     for job in jobs:
         try:
+            # We import tensorflow and run explicitly to prevent the strange problem of constant 1.0 Val Loss
             import tensorflow as tf
             with tf.Session() as sess:
                 print('SETTING UP: Denoise: {}:{}:{} (Epochs: {}), Desc: {}:{}:{} (Epochs: {})'.format(job['model_denoise'], job['optimizer_denoise'], job['denoise_suffix'], job['epochs_denoise'], job['model_desc'], job['optimizer_desc'], job['denoisertrain'], job['epochs_desc']))
@@ -218,11 +233,13 @@ if __name__=='__main__':
                                                                           job['evaluate'], job['pca'], job['optimizer_desc'], job['optimizer_denoise'], job['model_denoise'],
                                                                           job['epochs_denoise'], job['model_desc'], job['epochs_desc'],
                                                                           job['use_clean'], job['nodisk'], job['denoise_suffix'],
-                                                                          job['denoisertrain'], denoise_val, denoise_train, desc_val, desc_train, job['keep_results'])
+                                                                          job['denoisertrain'], denoise_val, denoise_train, desc_val, desc_train, job['keep_results'],
+                                                                          prev_batch_size)
         except KeyboardInterrupt:
-            print("CANCELLING: cancelling the current job due to Ctrl+C. Continuing run.")
+            print("\nCANCELLING: cancelling the current job due to Ctrl+C. Continuing run.\n")
         except BaseException as e:
-            # raise e # Remove the comment for debugging purposes in the terminal
-            print("EXCEPTION!!! Please see errors.log for details. Continuing run.")
+            #raise e # Remove the comment for debugging purposes in the terminal
+            print("\nEXCEPTION!!! Please see errors.log for details. Continuing run.\n")
             with open("./errors.log", 'a+') as error_file:
+                traceback.print_exc(file=error_file)
                 error_file.write(str(e) + "\n" + str(job) + "\n")

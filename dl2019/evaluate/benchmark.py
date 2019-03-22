@@ -14,8 +14,9 @@ from dl2019.evaluate.hpatches_benchmark.utils.tasks import *
 from dl2019.evaluate.hpatches_benchmark.utils.misc import *
 #from keras_triplet_descriptor.hpatches_benchmark.utils.results import *
 from dl2019.evaluate.results_methods import *
+from dl2019.utils.hpatches import dogs
 
-def gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_model=None, use_clean=False):
+def gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_model=None, use_clean=False, dog=False):
     w = 32
     bs = 128
     output_dir = os.path.abspath(dir_dump)
@@ -59,6 +60,11 @@ def gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_
                 data_a = patches_for_net[st: end, :, :, :].astype(np.float32)
                 if denoise_model:
                     data_a = np.clip(denoise_model.predict(data_a).astype(int), 0, 255).astype(np.float32)
+
+                # convert to 5 channel if dog
+                if dog:
+                    data_a = data_a / 255 # Rescale the data
+                    data_a = dogs(data_a)
 
                 # compute output
                 out_a = desc_model.predict(x=data_a)
@@ -130,7 +136,7 @@ def results(output_folder_name, dir_dump, dir_ktd, pca_power_law=False, more_inf
         with open(os.path.join(dir_dump, os.path.join('overall_results', output_folder_name + '.npy')), 'w+b') as results_file:
             np.save(results_file, np.array(results_array))
 
-def run_evaluations(desc_model, seqs_test, dir_dump, dir_ktd, descriptor_name, denoisereval, pca_power_law=False, denoise_model=None, use_clean=False, keep_results=False):
+def run_evaluations(desc_model, seqs_test, dir_dump, dir_ktd, descriptor_name, denoisereval, pca_power_law=False, denoise_model=None, use_clean=False, keep_results=False, dog=False):
     print('EVALUATING: Generating a descriptor array for desc Model: {} Clean: {}.'.format(descriptor_name, use_clean))
     output_folder_name = descriptor_name
     if use_clean:
@@ -142,7 +148,7 @@ def run_evaluations(desc_model, seqs_test, dir_dump, dir_ktd, descriptor_name, d
         print('SKIPPING EVALUATION: Evaluation file exists in overall_results directory.')
         return
 
-    gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_model=denoise_model, use_clean=use_clean)
+    gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_model=denoise_model, use_clean=use_clean, dog=dog)
     evaluate(dir_ktd, dir_dump, output_folder_name, pca_power_law)
     results(output_folder_name, dir_dump, dir_ktd, pca_power_law)
     if not keep_results:

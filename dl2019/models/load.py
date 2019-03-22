@@ -37,7 +37,7 @@ def get_denoise_model(shape, model_type):
 
 def get_descriptor_model(shape, model_type):
     ''' Get a descriptor model based on the model type. '''
-    if model_type == 'baseline':
+    if model_type in ['baseline', 'baselinedog', 'baseline100', 'baseline250', 'baseline500']:
         return BaselineDescriptor(shape)
     else:
         raise NotImplementedError('The descriptor model type "{}" does not exist.'.format(model_type))

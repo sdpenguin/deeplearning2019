@@ -3,7 +3,94 @@ from tqdm import tqdm
 import os
 import cv2
 
+from skimage import filters
+
 from keras_triplet_descriptor.read_data import *
+
+def dogs(x, k=1.6):
+    ''' Converts an single channel image array to a 5 channel array (original + 4 DoGs).
+        k is effectively the bandpass coefficient. It specifies the width of the bandpass Gaussian filter.'''
+    returnable_array = []
+    for img in x:
+        img_plus_dogs = img
+        for idx,sigma in enumerate([4.0,8.0,16.0,32.0]):
+            s1 = filters.gaussian(img,k*sigma)
+            s2 = filters.gaussian(img,sigma)
+            # Multiply by sigma to get scale invariance
+            dog = s1 - s2
+            # Append to array
+            np.append(img_plus_dogs, dog, axis=-1)
+        # Append set of images to overall batch
+        returnable_array.append(img_plus_dogs)
+    return np.array(returnable_array)
+
+
+
+class DataGeneratorDescImproved(keras.utils.Sequence):
+    # 'Generates data for Keras'
+    def __init__(self, data, labels, num_triplets = 1000000, batch_size=50, dim=(32,32), n_channels=1, shuffle=True, dog=False):
+        # 'Initialization'
+        self.dog = dog
+        self.transform = None
+        self.out_triplets = True
+        self.dim = dim
+        self.batch_size = batch_size
+        self.n_channels = n_channels
+        self.shuffle = shuffle
+        self.data = data
+        self.labels = labels
+        self.num_triplets = num_triplets
+        self.on_epoch_end()
+
+    def get_image(self, t):
+        def transform_img(img):
+            if self.transform is not None:
+                img = transform(img.numpy())
+            return img
+
+        a, p, n = self.data[t[0]], self.data[t[1]], self.data[t[2]]
+
+        img_a = transform_img(a).astype(float)
+        img_p = transform_img(p).astype(float)
+        img_n = transform_img(n).astype(float)
+
+        img_a = np.expand_dims(img_a, -1)
+        img_p = np.expand_dims(img_p, -1)
+        img_n = np.expand_dims(img_n, -1)
+        if self.out_triplets:
+            return img_a, img_p, img_n
+        else:
+            return img_a, img_p
+
+    def __len__(self):
+        '''Denotes the number of batches per epoch'''
+        return int(np.floor(len(self.triplets) / self.batch_size))
+                
+    def __getitem__(self, index):
+        y = np.zeros((self.batch_size, 1))
+        img_a = np.empty((self.batch_size,) + self.dim + (self.n_channels,))
+        img_p = np.empty((self.batch_size,) + self.dim + (self.n_channels,))
+        if self.out_triplets:
+            img_n = np.empty((self.batch_size,) + self.dim + (self.n_channels,))
+        for i in range(self.batch_size):
+            t = self.triplets[self.batch_size*index + i]    
+            img_a_t, img_p_t, img_n_t = self.get_image(t)
+            img_a[i] = img_a_t
+            img_p[i] = img_p_t
+            if self.out_triplets:
+                img_n[i] = img_n_t
+
+        if self.dog:
+            img_a = dogs(img_a)
+            img_p = dogs(img_p)
+            img_n = dogs(img_n)
+
+        return {'a': img_a, 'p': img_p, 'n': img_n}, y
+
+    def on_epoch_end(self):
+        # 'Updates indexes after each epoch'
+        self.triplets = generate_triplets(self.labels, self.num_triplets, 32)
+
 
 class DenoiseHPatchesImproved(DenoiseHPatches):
     """Class for loading an HPatches sequence from a sequence folder.

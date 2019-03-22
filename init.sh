@@ -29,7 +29,7 @@ fi
 apt update && apt install -y libsm6 libxext6 libxrender-dev
 
 # Insall necessary python modules
-pip install keras opencv-python tqdm pandas matplotlib joblib dill tabulate
+pip install keras opencv-python tqdm pandas matplotlib joblib dill tabulate scikit-image
 pip uninstall tensorflow tensorflow-gpu
 pip install tensorflow-gpu
 
