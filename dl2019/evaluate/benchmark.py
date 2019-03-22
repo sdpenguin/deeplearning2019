@@ -46,6 +46,9 @@ def gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_
             outs = []
             
             n_batches = int(n_patches / bs) + 1
+            i = 1
+            if dog:
+                print('Rescaling {}'.format(tp))
             for batch_idx in range(n_batches):
                 st = batch_idx * bs
                 if batch_idx == n_batches - 1:
@@ -59,12 +62,14 @@ def gen_desc_array(desc_model, output_folder_name, seqs_test, dir_dump, denoise_
                     continue
                 data_a = patches_for_net[st: end, :, :, :].astype(np.float32)
                 if denoise_model:
-                    data_a = np.clip(denoise_model.predict(data_a).astype(int), 0, 255).astype(np.float32)
+                    data_a = np.clip(denoise_model.predict(data_a).astype(int), 0, 255)
 
                 # convert to 5 channel if dog
                 if dog:
-                    data_a = data_a / 255 # Rescale the data
+                    print('Rescaling {}/{}'.format(i, n_batches))
+                    i = i+1
                     data_a = dogs(data_a)
+                    data_a = np.array(data_a).astype(np.float32)
 
                 # compute output
                 out_a = desc_model.predict(x=data_a)
@@ -156,7 +161,7 @@ def run_evaluations(desc_model, seqs_test, dir_dump, dir_ktd, descriptor_name, d
         shutil.rmtree(os.path.join(dir_dump, os.path.join('eval', output_folder_name)))
         shutil.rmtree(os.path.join(dir_dump, os.path.join('results', output_folder_name)))
 
-def load_results(dir_dump, descriptor, denoisertrain, denoisereval, use_clean):
+def load_results(dir_dump, descriptor, denoisertrain, denoisereval=None, use_clean=False):
     ''' Loads npy file results that have been generated and saved in dir_dump/overall_results.
         If use_clean is True, then simply set model_denoise etc. to None when you call this function.'''
     file_name = descriptor
